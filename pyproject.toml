@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "art-code-to-sheets"
+version = "0.1.0"
+description = "daily code assistant to create a google sheet from the daily schedule and then add cpt codes and modifiers or units"
+authors = ["nate ginn <growyourbiz4ever@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
