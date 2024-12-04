@@ -18,7 +18,69 @@ from PyQt6.QtWidgets import (
 )
 
 LOCATIONS = ["Greeley", "UNC", "FOCO"]
-INSURANCES = ["AETNA", "BCBS", "CIGNA", "MEDICARE", "UHC"]
+
+# Common insurance providers (sorted alphabetically)
+COMMON_INSURANCES = sorted([
+    "AUTO:GEICO",
+    "AUTO:HSS",
+    "AUTO:LIEN",
+    "AUTO:MEDPAY",
+    "AUTO:MARRICK",
+    "AUTO:PROGRESSIVE",
+    "AUTO:PROVE",
+    "AUTO:STATE FARM",
+    "AUTO:TRIO",
+    "AUTO:USAA",
+    "AETNA",
+    "ANTHEM",
+    "BCBS",
+    "CIGNA",
+    "CIGNA BEHAVIORAL",
+    "COFINITY",
+    "GOLDEN RULE",
+    "HUMANA",
+    "MEDICARE",
+    "MEDICAID",
+    "OPTUM",
+    "OXFORD",
+    "TRICARE",
+    "UHC",
+    "UHC COMMUNITY PLAN",
+    "UHC MEDICARE SOLUTIONS",
+    "UMR",
+    "UNITED HEALTHCARE",
+    "WORKER'S COMP"
+])
+
+# Common CPT codes (sorted numerically)
+COMMON_CPT_CODES = sorted([
+    "97110",
+    "97112",
+    "97140",
+    "97530",
+    "97810",
+    "97811",
+    "97813",
+    "97814",
+    "98925",
+    "98926",
+    "98940",
+    "98941",
+    "98943",
+    "99203",
+    "99204",
+    "99213",
+    "99214"
+])
+
+# Common modifiers and units (sorted numerically)
+COMMON_MODIFIERS = sorted([
+    "1",
+    "2",
+    "3",
+    "4",
+    "25"
+])
 
 class PDFConverterApp(QWidget):
     def __init__(self):
@@ -81,12 +143,30 @@ class PDFConverterApp(QWidget):
         provider_layout.addWidget(self.provider_edit)
         extracted_data_layout.addLayout(provider_layout)
 
+        # Insurance Input
+        insurance_layout = QHBoxLayout()
+        insurance_label = QLabel("Insurance:")
+        self.insurance_edit = QLineEdit()
+        self.insurance_edit.setPlaceholderText("Enter Insurance")
+        completer = QCompleter(COMMON_INSURANCES)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.insurance_edit.setCompleter(completer)
+        insurance_layout.addWidget(insurance_label)
+        insurance_layout.addWidget(self.insurance_edit)
+        extracted_data_layout.addLayout(insurance_layout)
+
         # CPT Code and Mod/Units Input (side by side)
         cpt_mod_layout = QHBoxLayout()
         cpt_label = QLabel("CPT Code:")
         self.cpt_code_edit = QLineEdit()
         self.cpt_code_edit.setPlaceholderText("Enter CPT Code")
+        completer = QCompleter(COMMON_CPT_CODES)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.cpt_code_edit.setCompleter(completer)
         self.cpt_code_edit.setFixedWidth(100)
+        self.cpt_code_edit.textChanged.connect(self.on_cpt_code_changed)  # Add text changed handler
         cpt_mod_layout.addWidget(cpt_label)
         cpt_mod_layout.addWidget(self.cpt_code_edit)
 
@@ -165,13 +245,28 @@ class PDFConverterApp(QWidget):
             self.process_pdf()
 
     def process_pdf(self):
-        from pdf_processor import PDFProcessor
-        
-        processor = PDFProcessor()
-        self.extracted_data = processor.extract_patients(self.pdf_path)  # Store all patients
-        
-        if self.extracted_data and len(self.extracted_data) > 0:
-            self.load_next_patient_data()  # Load the first patient
+        """Process the selected PDF file"""
+        try:
+            from pdf_processor import PDFProcessor
+            processor = PDFProcessor()
+            
+            # Process the PDF and get the data
+            self.extracted_data = processor.extract_patients(self.pdf_path)
+            
+            if not self.extracted_data:
+                print("No data extracted from PDF")
+                return
+                
+            # Get and display the schedule date
+            schedule_date = processor.get_schedule_date()
+            self.dos_field.setText(schedule_date)  # Update the DOS field
+            
+            # Load the first patient's data
+            self.current_patient_index = 0
+            self.load_next_patient_data()
+            self.insurance_edit.setFocus()  # Set focus to insurance field after PDF processing
+        except Exception as e:
+            print("Error processing PDF:", str(e))
 
     def add_entry_to_viewbox(self):
         cpt_code = self.cpt_code_edit.text().strip()
@@ -183,33 +278,21 @@ class PDFConverterApp(QWidget):
             self.cpt_code_edit.setFocus()  # Set focus back to the CPT Code field
 
     def next_patient(self):
-        # Save current entries to a data structure or file
-        current_entries = self.entries_view.toPlainText()
-        print("Saving entries for the current patient:", current_entries)
-
-        # Print current patient data from input fields
-        patient_data = {
-            'Name': self.patient_name_edit.text(),
-            'DOB': self.patient_dob_edit.text(),
-            'Provider': self.provider_edit.text(),
-            'CPT Codes': self.cpt_code_edit.text(),
-            'Mod/Units': self.mod_units_edit.text(),
-            'Entries': current_entries
-        }
-        print("Current Patient Data:", patient_data)
-
-        # Load next patient's data (this is a placeholder)
-        self.load_next_patient_data()
-
-        # Set focus back to the CPT Code field
-        self.cpt_code_edit.setFocus()
+        """Move to the next patient"""
+        if self.current_patient_index < len(self.extracted_data):
+            self.load_next_patient_data()
+            self.insurance_edit.setFocus()  # Set focus to insurance field
+        else:
+            print("No more patients to process")
 
     def load_next_patient_data(self):
-        if self.current_patient_index < len(self.extracted_data):
+        """Load the next patient's data into the form"""
+        if self.extracted_data and self.current_patient_index < len(self.extracted_data):
             patient = self.extracted_data[self.current_patient_index]
             self.patient_name_edit.setText(patient['name'])
             self.patient_dob_edit.setText(patient['dob'])
             self.provider_edit.setText(patient['provider'])
+            self.insurance_edit.setText(patient.get('insurance', ''))  # Use get() with default empty string
             self.cpt_code_edit.clear()  # Clear previous CPT code entry
             self.mod_units_edit.clear()  # Clear previous Mod/Units entry
             
@@ -220,6 +303,11 @@ class PDFConverterApp(QWidget):
             self.current_patient_index += 1
         else:
             print("No more patients to load.")
+
+    def on_cpt_code_changed(self, text):
+        """Handle CPT code changes"""
+        if text.startswith('99'):
+            self.mod_units_edit.setText('25')
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
