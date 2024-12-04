@@ -24,7 +24,8 @@ class PDFConverterApp(QWidget):
     def __init__(self):
         super().__init__()
         self.init_ui()
-        self.extracted_data = {}  # Initialize extracted_data as a dictionary
+        self.extracted_data = []  # Store all extracted patient data
+        self.current_patient_index = 0  # Track the current patient index
 
     def init_ui(self):
         self.setWindowTitle("PDF Converter Tool")
@@ -110,20 +111,29 @@ class PDFConverterApp(QWidget):
         # Button to add entries to the viewbox
         self.add_entry_button = QPushButton("Add Entry")
         self.add_entry_button.clicked.connect(self.add_entry_to_viewbox)
-        extracted_data_layout.addWidget(self.add_entry_button)
 
         # Next Patient button
         self.next_patient_button = QPushButton("Next Patient")
         self.next_patient_button.clicked.connect(self.next_patient)
-        extracted_data_layout.addWidget(self.next_patient_button)
+
+        # Create a horizontal layout for the buttons
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.add_entry_button)
+        button_layout.addWidget(self.next_patient_button)
+
+        extracted_data_layout.addLayout(button_layout)  # Add button layout to extracted data
 
         # Ensure Enter key activates the Add Entry button
         self.add_entry_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.add_entry_button.keyPressEvent = lambda event: self.add_entry_to_viewbox() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
 
         # Ensure Enter key activates the Add Entry button from the QLineEdit fields
-        self.cpt_code_edit.returnPressed.connect(self.add_entry_to_viewbox)
+        self.cpt_code_edit.returnPressed.connect(self.mod_units_edit.setFocus)  # Move to Mod/Units field
         self.mod_units_edit.returnPressed.connect(self.add_entry_to_viewbox)
+
+        # Ensure Enter key activates the Next Patient button
+        self.next_patient_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.next_patient_button.keyPressEvent = lambda event: self.next_patient() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
 
         # Viewbox for Entries
         self.entries_view = QTextEdit()
@@ -158,23 +168,10 @@ class PDFConverterApp(QWidget):
         from pdf_processor import PDFProcessor
         
         processor = PDFProcessor()
-        patients = processor.extract_patients(self.pdf_path)
+        self.extracted_data = processor.extract_patients(self.pdf_path)  # Store all patients
         
-        if patients and len(patients) > 0:
-            patient = patients[0]  # Get first patient
-            self.patient_name_edit.setText(patient['name'])
-            self.patient_dob_edit.setText(patient['dob'])
-            self.provider_edit.setText(patient['provider'])
-            
-            # Format and store schedule date
-            if processor.schedule_date:
-                date_obj = datetime.strptime(processor.schedule_date, '%B %d, %Y')
-                formatted_date = date_obj.strftime('%m/%d/%y')
-                self.extracted_data['schedule_date'] = formatted_date
-                self.dos_field.setText(formatted_date)  # Update DOS field with schedule date
-            
-            self.status_label.setText("PDF processed successfully")
-            self.extracted_data = patient
+        if self.extracted_data and len(self.extracted_data) > 0:
+            self.load_next_patient_data()  # Load the first patient
 
     def add_entry_to_viewbox(self):
         cpt_code = self.cpt_code_edit.text().strip()
@@ -186,9 +183,20 @@ class PDFConverterApp(QWidget):
             self.cpt_code_edit.setFocus()  # Set focus back to the CPT Code field
 
     def next_patient(self):
-        # Here you would save the current entries to a data structure or file
+        # Save current entries to a data structure or file
         current_entries = self.entries_view.toPlainText()
         print("Saving entries for the current patient:", current_entries)
+
+        # Print current patient data from input fields
+        patient_data = {
+            'Name': self.patient_name_edit.text(),
+            'DOB': self.patient_dob_edit.text(),
+            'Provider': self.provider_edit.text(),
+            'CPT Codes': self.cpt_code_edit.text(),
+            'Mod/Units': self.mod_units_edit.text(),
+            'Entries': current_entries
+        }
+        print("Current Patient Data:", patient_data)
 
         # Load next patient's data (this is a placeholder)
         self.load_next_patient_data()
@@ -197,10 +205,21 @@ class PDFConverterApp(QWidget):
         self.cpt_code_edit.setFocus()
 
     def load_next_patient_data(self):
-        # Placeholder for loading the next patient's data
-        self.patient_name_edit.setText("Next Patient Name")  # Example
-        self.patient_dob_edit.setText("Next Patient DOB")    # Example
-        self.provider_edit.setText("Next Provider")           # Example
+        if self.current_patient_index < len(self.extracted_data):
+            patient = self.extracted_data[self.current_patient_index]
+            self.patient_name_edit.setText(patient['name'])
+            self.patient_dob_edit.setText(patient['dob'])
+            self.provider_edit.setText(patient['provider'])
+            self.cpt_code_edit.clear()  # Clear previous CPT code entry
+            self.mod_units_edit.clear()  # Clear previous Mod/Units entry
+            
+            # Clear the entries view box
+            self.entries_view.clear()  # Clear previous entries
+            
+            # Increment the index for the next patient
+            self.current_patient_index += 1
+        else:
+            print("No more patients to load.")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
