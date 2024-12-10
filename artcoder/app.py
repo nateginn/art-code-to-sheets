@@ -18,6 +18,9 @@ from PyQt6.QtWidgets import (
     QTextEdit,
 
 )
+import os
+from dotenv import load_dotenv
+from sheets_manager import SheetsManager
 
 LOCATIONS = ["Greeley", "UNC", "FOCO"]
 
@@ -92,6 +95,11 @@ class PDFConverterApp(QWidget):
         self.current_patient_index = 0  # Track the current patient index
         self.patient_entries = {}  # Dictionary to store entries for each patient
         self.patient_insurance = {}  # Dictionary to store insurance for each patient
+        
+        # Load environment variables
+        load_dotenv()
+        credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+        self.sheets_manager = SheetsManager(credentials_path)
 
     def init_ui(self):
         self.setWindowTitle("PDF Converter Tool")
@@ -204,11 +212,16 @@ class PDFConverterApp(QWidget):
         self.prev_patient_button = QPushButton("Previous Patient")
         self.prev_patient_button.clicked.connect(self.prev_patient)
 
+        # Export to Sheets button
+        self.export_to_sheets_button = QPushButton("Export to Sheets")
+        self.export_to_sheets_button.clicked.connect(self.export_to_sheets)
+
         # Create a horizontal layout for the buttons
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.add_entry_button)
         button_layout.addWidget(self.next_patient_button)
         button_layout.addWidget(self.prev_patient_button)
+        button_layout.addWidget(self.export_to_sheets_button)
 
         extracted_data_layout.addLayout(button_layout)  # Add button layout to extracted data
 
@@ -403,6 +416,17 @@ class PDFConverterApp(QWidget):
                 self.patient_entries[current_patient] = self.entries_view.toPlainText().split('\n')
                 if '' in self.patient_entries[current_patient]:
                     self.patient_entries[current_patient].remove('')
+
+    def export_to_sheets(self):
+        spreadsheet_id = 'your_spreadsheet_id_here'  # Replace with your actual spreadsheet ID
+        all_patient_data = []
+        for patient_name, entries in self.patient_entries.items():
+            insurance = self.patient_insurance.get(patient_name, '')
+            for entry in entries:
+                cpt_code, mod_units = entry.split(', Mod/Units: ')
+                cpt_code = cpt_code.replace('CPT Code: ', '')
+                all_patient_data.append([patient_name, insurance, cpt_code, mod_units])
+        self.sheets_manager.update_sheet(spreadsheet_id, all_patient_data)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
