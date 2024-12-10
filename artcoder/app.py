@@ -1,91 +1,115 @@
+import os
 import sys
 from datetime import datetime
+import logging
+
+from dotenv import load_dotenv
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor, QTextCharFormat
+from PyQt6.QtGui import QTextCharFormat, QTextCursor
 from PyQt6.QtWidgets import (
     QApplication,
-    QCompleter,
     QComboBox,
+    QCompleter,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
-    QTextEdit,
-
 )
-import os
-from dotenv import load_dotenv
+
 from sheets_manager import SheetsManager
 
 LOCATIONS = ["Greeley", "UNC", "FOCO"]
 
 # Common insurance providers (sorted alphabetically)
-COMMON_INSURANCES = sorted([
-    "AUTO:GEICO",
-    "AUTO:HSS",
-    "AUTO:LIEN",
-    "AUTO:MEDPAY",
-    "AUTO:MARRICK",
-    "AUTO:PROGRESSIVE",
-    "AUTO:PROVE",
-    "AUTO:STATE FARM",
-    "AUTO:TRIO",
-    "AUTO:USAA",
-    "AETNA",
-    "ANTHEM",
-    "BCBS",
-    "CIGNA",
-    "CIGNA BEHAVIORAL",
-    "COFINITY",
-    "GOLDEN RULE",
-    "HUMANA",
-    "MEDICARE",
-    "MEDICAID",
-    "OPTUM",
-    "OXFORD",
-    "TRICARE",
-    "UHC",
-    "UHC COMMUNITY PLAN",
-    "UHC MEDICARE SOLUTIONS",
-    "UMR",
-    "UNITED HEALTHCARE",
-    "WORKER'S COMP"
-])
+COMMON_INSURANCES = sorted(
+    [
+        "AUTO:GEICO",
+        "AUTO:HSS",
+        "AUTO:LIEN",
+        "AUTO:MEDPAY",
+        "AUTO:MARRICK",
+        "AUTO:PROGRESSIVE",
+        "AUTO:PROVE",
+        "AUTO:STATE FARM",
+        "AUTO:TRIO",
+        "AUTO:USAA",
+        "AETNA",
+        "ANTHEM",
+        "BCBS",
+        "CIGNA",
+        "CIGNA BEHAVIORAL",
+        "COFINITY",
+        "GOLDEN RULE",
+        "HUMANA",
+        "MEDICARE",
+        "MEDICAID",
+        "OPTUM",
+        "OXFORD",
+        "TRICARE",
+        "UHC",
+        "UHC COMMUNITY PLAN",
+        "UHC MEDICARE SOLUTIONS",
+        "UMR",
+        "UNITED HEALTHCARE",
+        "WORKER'S COMP",
+    ]
+)
 
 # Common CPT codes (sorted numerically)
-COMMON_CPT_CODES = sorted([
-    "97110",
-    "97112",
-    "97140",
-    "97530",
-    "97810",
-    "97811",
-    "97813",
-    "97814",
-    "98925",
-    "98926",
-    "98940",
-    "98941",
-    "98943",
-    "99203",
-    "99204",
-    "99213",
-    "99214"
-])
+COMMON_CPT_CODES = sorted(
+    [
+        "97110",
+        "97112",
+        "97140",
+        "97530",
+        "97810",
+        "97811",
+        "97813",
+        "97814",
+        "98925",
+        "98926",
+        "98940",
+        "98941",
+        "98943",
+        "99203",
+        "99204",
+        "99213",
+        "99214",
+    ]
+)
 
 # Common modifiers and units (sorted numerically)
-COMMON_MODIFIERS = sorted([
-    "1",
-    "2",
-    "3",
-    "4",
-    "25"
-])
+COMMON_MODIFIERS = sorted(["1", "2", "3", "4", "25"])
+
+
+class ConfirmationDialog(QtWidgets.QDialog):
+    def __init__(self, parent, message):
+        super().__init__(parent)
+        self.setWindowTitle("Confirmation")
+        self.setModal(True)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel(message))
+
+        self.yes_button = QtWidgets.QPushButton("Yes")
+        self.yes_button.clicked.connect(self.accept)
+        layout.addWidget(self.yes_button)
+
+        self.no_button = QtWidgets.QPushButton("No")
+        self.no_button.clicked.connect(self.reject)
+        layout.addWidget(self.no_button)
+
+        self.setLayout(layout)
+
+    def get_result(self):
+        return self.result()
+
 
 class PDFConverterApp(QWidget):
     def __init__(self):
@@ -95,9 +119,11 @@ class PDFConverterApp(QWidget):
         self.current_patient_index = 0  # Track the current patient index
         self.patient_entries = {}  # Dictionary to store entries for each patient
         self.patient_insurance = {}  # Dictionary to store insurance for each patient
-        
+
         # Initialize sheets manager with credentials file
-        credentials_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'service_account.json')
+        credentials_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "service_account.json"
+        )
         self.sheets_manager = SheetsManager(credentials_path)
 
     def init_ui(self):
@@ -111,7 +137,7 @@ class PDFConverterApp(QWidget):
         self.location_combo = QComboBox()
         self.location_combo.addItems(LOCATIONS)
         location_layout.addWidget(self.location_combo)
-        
+
         location_group.setLayout(location_layout)
         layout.addWidget(location_group)
 
@@ -177,7 +203,9 @@ class PDFConverterApp(QWidget):
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.cpt_code_edit.setCompleter(completer)
         self.cpt_code_edit.setFixedWidth(100)
-        self.cpt_code_edit.textChanged.connect(self.on_cpt_code_changed)  # Add text changed handler
+        self.cpt_code_edit.textChanged.connect(
+            self.on_cpt_code_changed
+        )  # Add text changed handler
         cpt_mod_layout.addWidget(cpt_label)
         cpt_mod_layout.addWidget(self.cpt_code_edit)
 
@@ -222,23 +250,47 @@ class PDFConverterApp(QWidget):
         button_layout.addWidget(self.prev_patient_button)
         button_layout.addWidget(self.export_to_sheets_button)
 
-        extracted_data_layout.addLayout(button_layout)  # Add button layout to extracted data
+        extracted_data_layout.addLayout(
+            button_layout
+        )  # Add button layout to extracted data
 
         # Ensure Enter key activates the Add Entry button
         self.add_entry_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.add_entry_button.keyPressEvent = lambda event: self.add_entry_to_viewbox() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
+        self.add_entry_button.keyPressEvent = lambda event: (
+            self.add_entry_to_viewbox()
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+            else None
+        )
 
         # Ensure Enter key activates the Add Entry button from the QLineEdit fields
-        self.cpt_code_edit.returnPressed.connect(self.mod_units_edit.setFocus)  # Move to Mod/Units field
+        self.cpt_code_edit.returnPressed.connect(
+            self.mod_units_edit.setFocus
+        )  # Move to Mod/Units field
         self.mod_units_edit.returnPressed.connect(self.add_entry_to_viewbox)
 
         # Ensure Enter key activates the Next Patient button
         self.next_patient_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.next_patient_button.keyPressEvent = lambda event: self.next_patient() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
+        self.next_patient_button.keyPressEvent = lambda event: (
+            self.next_patient()
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+            else None
+        )
 
         # Ensure Enter key activates the Previous Patient button
         self.prev_patient_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.prev_patient_button.keyPressEvent = lambda event: self.prev_patient() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
+        self.prev_patient_button.keyPressEvent = lambda event: (
+            self.prev_patient()
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+            else None
+        )
+
+        # Ensure Enter key activates the Export to Sheets button
+        self.export_to_sheets_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.export_to_sheets_button.keyPressEvent = lambda event: (
+            self.export_to_sheets()
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+            else None
+        )
 
         # Viewbox for Entries
         self.entries_view = QTextEdit()
@@ -262,10 +314,10 @@ class PDFConverterApp(QWidget):
 
     def select_file(self):
         file_name, _ = QFileDialog.getOpenFileName(
-            self, 
-            "Select PDF File", 
+            self,
+            "Select PDF File",
             "C:/Users/nginn/OneDrive/Documents/PF_Schedules",
-            "PDF Files (*.pdf);;All Files (*)"
+            "PDF Files (*.pdf);;All Files (*)",
         )
         if file_name:
             self.file_label.setText(f"Selected File: {file_name}")
@@ -276,19 +328,20 @@ class PDFConverterApp(QWidget):
         """Process the selected PDF file"""
         try:
             from pdf_processor import PDFProcessor
+
             processor = PDFProcessor()
-            
+
             # Process the PDF and get the data
             self.extracted_data = processor.extract_patients(self.pdf_path)
-            
+
             if not self.extracted_data:
                 print("No data extracted from PDF")
                 return
-                
+
             # Get and display the schedule date
             schedule_date = processor.get_schedule_date()
             self.dos_field.setText(schedule_date)  # Update the DOS field
-            
+
             # Load the first patient's data
             self.current_patient_index = 0
             self.load_next_patient_data()
@@ -299,32 +352,75 @@ class PDFConverterApp(QWidget):
     def add_entry_to_viewbox(self):
         cpt_code = self.cpt_code_edit.text().strip()
         mod_units = self.mod_units_edit.text().strip()
-        if cpt_code and mod_units:
-            entry = f"CPT Code: {cpt_code}, Mod/Units: {mod_units}"
-            self.entries_view.append(entry)
-            
-            # Store the entry for the current patient
-            current_patient = self.patient_name_edit.text()
-            if current_patient not in self.patient_entries:
-                self.patient_entries[current_patient] = []
-            self.patient_entries[current_patient].append(entry)
-            
-            self.cpt_code_edit.clear()
-            self.mod_units_edit.clear()
-            self.cpt_code_edit.setFocus()  # Set focus back to the CPT Code field
+
+        # Validation check for CPT code
+        if not cpt_code or len(cpt_code) != 5:
+            self.status_label.setText("Error: CPT Code must be a 5-digit code.")
+            self.cpt_code_edit.setFocus()
+            return
+
+        # Check if the CPT code is in the list
+        if cpt_code not in COMMON_CPT_CODES:
+            self.status_label.setText("Error: CPT Code does not match any in the list.")
+            self.cpt_code_edit.setFocus()
+            return
+
+        # Validation check for Mod/Units
+        if not mod_units:
+            self.status_label.setText("Error: Mod/Units cannot be left empty.")
+            self.mod_units_edit.setFocus()
+            return
+
+        # If the code is valid, proceed to add the entry
+        entry = f"CPT Code: {cpt_code}, Mod/Units: {mod_units}"
+        self.entries_view.append(entry)
+
+        # Store the entry for the current patient
+        current_patient = self.patient_name_edit.text()
+        if current_patient not in self.patient_entries:
+            self.patient_entries[current_patient] = []
+        self.patient_entries[current_patient].append(entry)
+
+        self.cpt_code_edit.clear()
+        self.mod_units_edit.clear()
+        self.cpt_code_edit.setFocus()  # Set focus back to the CPT Code field
 
     def next_patient(self):
-        """Move to the next patient"""
-        if self.current_patient_index < len(self.extracted_data):
-            self.load_next_patient_data()
-            self.insurance_edit.setFocus()  # Set focus to insurance field
-        else:
-            print("No more patients to process")
+        # Save current entries to a data structure or file
+        current_entries = self.entries_view.toPlainText()
+        print("Saving entries for the current patient:", current_entries)
+
+        # Print current patient data from input fields
+        patient_data = {
+            "Name": self.patient_name_edit.text(),
+            "DOB": self.patient_dob_edit.text(),
+            "Provider": self.provider_edit.text(),
+            "CPT Codes": self.cpt_code_edit.text(),
+            "Mod/Units": self.mod_units_edit.text(),
+            "Entries": current_entries,
+        }
+        print("Current Patient Data:", patient_data)
+
+        # Validation check for current patient data
+        if not patient_data["Name"]:
+            self.status_label.setText("Error: Patient Name is required.")
+            return
+        if not patient_data["DOB"]:
+            self.status_label.setText("Error: Patient DOB is required.")
+            return
+
+        # Load next patient's data
+        self.load_next_patient_data()
+
+        # Set focus to the insurance field
+        self.insurance_edit.setFocus()
 
     def prev_patient(self):
         """Move to the previous patient"""
         if self.current_patient_index > 1:  # We can go back
-            self.current_patient_index -= 2  # Subtract 2 because load_next_patient_data will add 1
+            self.current_patient_index -= (
+                2  # Subtract 2 because load_next_patient_data will add 1
+            )
             self.load_next_patient_data()
             self.insurance_edit.setFocus()
         else:
@@ -332,46 +428,50 @@ class PDFConverterApp(QWidget):
 
     def load_next_patient_data(self):
         """Load the next patient's data into the form"""
-        if self.extracted_data and self.current_patient_index < len(self.extracted_data):
+        if self.extracted_data and self.current_patient_index < len(
+            self.extracted_data
+        ):
             # Save current patient's data before loading next patient
             current_patient = self.patient_name_edit.text()
             if current_patient:
                 entries_text = self.entries_view.toPlainText().strip()
                 if entries_text:
-                    self.patient_entries[current_patient] = entries_text.split('\n')
+                    self.patient_entries[current_patient] = entries_text.split("\n")
                 self.patient_insurance[current_patient] = self.insurance_edit.text()
-            
+
             patient = self.extracted_data[self.current_patient_index]
-            patient_name = patient['name']
+            patient_name = patient["name"]
             self.patient_name_edit.setText(patient_name)
-            self.patient_dob_edit.setText(patient['dob'])
-            self.provider_edit.setText(patient['provider'])
-            
+            self.patient_dob_edit.setText(patient["dob"])
+            self.provider_edit.setText(patient["provider"])
+
             # Restore insurance if previously saved, otherwise use default
-            self.insurance_edit.setText(self.patient_insurance.get(patient_name, patient.get('insurance', '')))
+            self.insurance_edit.setText(
+                self.patient_insurance.get(patient_name, patient.get("insurance", ""))
+            )
             self.cpt_code_edit.clear()
             self.mod_units_edit.clear()
-            
+
             # Clear and restore entries for the new patient
             self.entries_view.clear()
             if patient_name in self.patient_entries:
                 for entry in self.patient_entries[patient_name]:
                     self.entries_view.append(entry)
-            
+
             self.current_patient_index += 1
         else:
             print("No more patients to load.")
 
     def on_cpt_code_changed(self, text):
         """Handle CPT code changes"""
-        if text.startswith('99'):
-            self.mod_units_edit.setText('25')
+        if text.startswith("99"):
+            self.mod_units_edit.setText("25")
 
     def on_viewbox_mouse_move(self, event):
         """Highlight the line under the mouse cursor"""
         cursor = self.entries_view.cursorForPosition(event.pos())
         cursor.select(QTextCursor.SelectionType.LineUnderCursor)
-        
+
         # Remove all highlights first
         cursor_all = QTextCursor(self.entries_view.document())
         cursor_all.select(QTextCursor.SelectionType.Document)
@@ -395,9 +495,10 @@ class PDFConverterApp(QWidget):
         cursor = self.entries_view.cursorForPosition(event.pos())
         cursor.select(QTextCursor.SelectionType.LineUnderCursor)
         line = cursor.selectedText()
-        
+
         # Extract CPT code and Mod/Units from the line
         import re
+
         match = re.match(r"CPT Code: (.*?), Mod/Units: (.*)", line)
         if match:
             cpt_code = match.group(1)
@@ -408,34 +509,38 @@ class PDFConverterApp(QWidget):
             # Remove the line from viewbox and update patient entries
             cursor.removeSelectedText()
             cursor.deletePreviousChar()  # Remove the newline
-            
+
             # Update stored entries for current patient
             current_patient = self.patient_name_edit.text()
             if current_patient in self.patient_entries:
-                self.patient_entries[current_patient] = self.entries_view.toPlainText().split('\n')
-                if '' in self.patient_entries[current_patient]:
-                    self.patient_entries[current_patient].remove('')
+                self.patient_entries[current_patient] = (
+                    self.entries_view.toPlainText().split("\n")
+                )
+                if "" in self.patient_entries[current_patient]:
+                    self.patient_entries[current_patient].remove("")
 
     def export_to_sheets(self):
         try:
-            spreadsheet_id = '1Vr13r4kGpXFDrXPx9kS8r4_EaF-yQKJ7clbYxl_7-Zk'  # Replace with your actual spreadsheet ID
+            spreadsheet_id = "your_spreadsheet_id"  # Replace with your actual spreadsheet ID
             all_patient_data = []
-            # Add headers
-            all_patient_data.append(['Patient Name', 'Insurance', 'CPT Code', 'Mod/Units'])
-            
+            all_patient_data.append(["Patient Name", "Insurance", "CPT Code", "Mod/Units"])
+
             for patient_name, entries in self.patient_entries.items():
-                insurance = self.patient_insurance.get(patient_name, '')
-                for entry in entries:
-                    cpt_code, mod_units = entry.split(', Mod/Units: ')
-                    cpt_code = cpt_code.replace('CPT Code: ', '')
-                    all_patient_data.append([patient_name, insurance, cpt_code, mod_units])
-            
-            if self.sheets_manager.update_sheet(spreadsheet_id, all_patient_data):
+                # Extract data from entries
+                # Ensure you are correctly processing the entries
+                cpt_code, mod_units = entry.split(", Mod/Units: ")
+                all_patient_data.append([patient_name, insurance, cpt_code, mod_units])
+
+            # Log the data to be sent
+            logging.info(f"Data to be exported: {all_patient_data}")
+
+            if self.sheets_manager.append_patients_data(spreadsheet_id, all_patient_data):
                 self.status_label.setText("Successfully exported to Google Sheets")
             else:
                 self.status_label.setText("Failed to export to Google Sheets")
         except Exception as e:
             self.status_label.setText(f"Error exporting to sheets: {str(e)}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
