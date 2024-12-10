@@ -119,6 +119,7 @@ class PDFConverterApp(QWidget):
         self.current_patient_index = 0  # Track the current patient index
         self.patient_entries = {}  # Dictionary to store entries for each patient
         self.patient_insurance = {}  # Dictionary to store insurance for each patient
+        self.export_button_clicked = False  # Track if export button has been clicked
 
         # Initialize sheets manager with credentials file
         credentials_path = os.path.join(
@@ -189,6 +190,7 @@ class PDFConverterApp(QWidget):
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.insurance_edit.setCompleter(completer)
+        self.insurance_edit.textChanged.connect(self.on_insurance_changed)
         insurance_layout.addWidget(insurance_label)
         insurance_layout.addWidget(self.insurance_edit)
         extracted_data_layout.addLayout(insurance_layout)
@@ -307,10 +309,14 @@ class PDFConverterApp(QWidget):
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
+        # Status/Counter Label
+        self.status_counter_label = QLabel("0/0")  # Initialize with 0 completed patients
+        layout.addWidget(self.status_counter_label)
+
         # Set main layout
         self.setLayout(layout)
         self.setMinimumWidth(150)
-        self.setMinimumHeight(200)
+        self.setMinimumHeight(150)
 
     def select_file(self):
         file_name, _ = QFileDialog.getOpenFileName(
@@ -385,35 +391,28 @@ class PDFConverterApp(QWidget):
         self.mod_units_edit.clear()
         self.cpt_code_edit.setFocus()  # Set focus back to the CPT Code field
 
+        # Update the status counter
+        self.update_status_counter()
+
     def next_patient(self):
-        # Save current entries to a data structure or file
-        current_entries = self.entries_view.toPlainText()
-        print("Saving entries for the current patient:", current_entries)
+        """Move to the next patient"""
+        # Check if insurance is selected
+        current_patient = self.patient_name_edit.text()
+        current_insurance = self.insurance_edit.text()
 
-        # Print current patient data from input fields
-        patient_data = {
-            "Name": self.patient_name_edit.text(),
-            "DOB": self.patient_dob_edit.text(),
-            "Provider": self.provider_edit.text(),
-            "CPT Codes": self.cpt_code_edit.text(),
-            "Mod/Units": self.mod_units_edit.text(),
-            "Entries": current_entries,
-        }
-        print("Current Patient Data:", patient_data)
-
-        # Validation check for current patient data
-        if not patient_data["Name"]:
-            self.status_label.setText("Error: Patient Name is required.")
-            return
-        if not patient_data["DOB"]:
-            self.status_label.setText("Error: Patient DOB is required.")
+        if not current_insurance:
+            self.status_label.setText("Error: Insurance must be selected before moving to next patient")
+            self.insurance_edit.setFocus()
             return
 
-        # Load next patient's data
-        self.load_next_patient_data()
+        # Save the current insurance
+        self.patient_insurance[current_patient] = current_insurance
 
-        # Set focus to the insurance field
-        self.insurance_edit.setFocus()
+        if self.current_patient_index < len(self.extracted_data) - 1:
+            self.load_next_patient_data()
+            self.insurance_edit.setFocus()  # Set focus to insurance field
+        else:
+            self.status_label.setText("No more patients to process")
 
     def prev_patient(self):
         """Move to the previous patient"""
@@ -422,7 +421,7 @@ class PDFConverterApp(QWidget):
                 2  # Subtract 2 because load_next_patient_data will add 1
             )
             self.load_next_patient_data()
-            self.insurance_edit.setFocus()
+            self.insurance_edit.setFocus()  # Set focus to insurance field
         else:
             print("Already at the first patient")
 
@@ -466,6 +465,13 @@ class PDFConverterApp(QWidget):
         """Handle CPT code changes"""
         if text.startswith("99"):
             self.mod_units_edit.setText("25")
+
+    def on_insurance_changed(self, insurance):
+        """Handle insurance selection"""
+        if insurance:  # Only save if insurance is not empty
+            current_patient = self.patient_name_edit.text()
+            self.patient_insurance[current_patient] = insurance
+            self.status_label.setText("")  # Clear any error message
 
     def on_viewbox_mouse_move(self, event):
         """Highlight the line under the mouse cursor"""
@@ -520,26 +526,70 @@ class PDFConverterApp(QWidget):
                     self.patient_entries[current_patient].remove("")
 
     def export_to_sheets(self):
+        if self.export_button_clicked:
+            return
+        
         try:
-            spreadsheet_id = "your_spreadsheet_id"  # Replace with your actual spreadsheet ID
+            # Get the location from the combo box
+            location = self.location_combo.currentText()
+            # Get the service date from the DOS field
+            service_date = self.dos_field.text()
+            
+            if not location or not service_date:
+                self.status_label.setText("Error: Missing location or service date")
+                return
+
             all_patient_data = []
-            all_patient_data.append(["Patient Name", "Insurance", "CPT Code", "Mod/Units"])
+            
+            # Rest of your existing export code...
+            for patient in self.extracted_data:
+                patient_name = patient["name"]
+                patient_dob = patient.get("dob", "")
+                patient_insurance = self.patient_insurance.get(patient_name, "")
+                patient_provider = patient.get("provider", "")
+                
+                # Initialize a row with values for all columns
+                patient_row = [patient_name, patient_dob, patient_insurance, patient_provider, "", "", "", "", "", "", "", "", "", "", ""]
 
-            for patient_name, entries in self.patient_entries.items():
-                # Extract data from entries
-                # Ensure you are correctly processing the entries
-                cpt_code, mod_units = entry.split(", Mod/Units: ")
-                all_patient_data.append([patient_name, insurance, cpt_code, mod_units])
+                # Fill in the CPT codes and Mod/Units if available
+                entries = self.patient_entries.get(patient_name, [])
+                for i, entry in enumerate(entries[:5]):  # Limit to 5 CPT codes
+                    if "CPT Code:" in entry:
+                        cpt_code = entry.split("CPT Code: ")[1].split(",")[0].strip()
+                        mod_units = entry.split("Mod/Units: ")[1].strip()
+                        # CPT codes start at index 4 and increment by 2
+                        patient_row[4 + (i * 2)] = cpt_code
+                        patient_row[5 + (i * 2)] = mod_units
+                
+                all_patient_data.append(patient_row)
 
-            # Log the data to be sent
-            logging.info(f"Data to be exported: {all_patient_data}")
+            # Create and format the sheet with the correct title and data
+            spreadsheet_id = self.sheets_manager.create_and_format_sheet(
+                location, service_date, all_patient_data
+            )
 
-            if self.sheets_manager.append_patients_data(spreadsheet_id, all_patient_data):
+            if spreadsheet_id:
                 self.status_label.setText("Successfully exported to Google Sheets")
+                self.export_button_clicked = True  # Prevent multiple exports
+                # Close the application after a successful export
+                self.close()
             else:
                 self.status_label.setText("Failed to export to Google Sheets")
+                
         except Exception as e:
             self.status_label.setText(f"Error exporting to sheets: {str(e)}")
+            logging.error(f"Export error: {str(e)}")
+
+    def update_status_counter(self):
+        """Update the status counter for completed patients"""
+        completed_patients = 0
+        total_patients = len(self.extracted_data)
+
+        for patient_name in self.patient_entries:
+            if self.patient_insurance.get(patient_name) and any("CPT Code:" in entry for entry in self.patient_entries[patient_name]):
+                completed_patients += 1
+
+        self.status_counter_label.setText(f"{completed_patients}/{total_patients}")
 
 
 if __name__ == "__main__":

@@ -100,3 +100,39 @@ class SheetsManager:
             return True
         except Exception:
             return False
+
+    def create_and_format_sheet(self, location, service_date, patients_data):
+        """Create a new sheet with proper title format and column headers"""
+        title = f"ART-{location} {service_date}"
+        try:
+            spreadsheet_id = self.create_sheet(title)
+            if not spreadsheet_id:
+                return None
+
+            # Set up column headers
+            headers = [
+                "Name", "DOB", "Insurance", "Provider",
+                "CPT1", "Mod/Units1",
+                "CPT2", "Mod/Units2",
+                "CPT3", "Mod/Units3",
+                "CPT4", "Mod/Units4",
+                "CPT5", "Mod/Units5"
+            ]
+            
+            values = [headers]  # Start with headers
+            values.extend(patients_data)  # Add patient data rows
+            
+            body = {'values': values}
+            
+            # Update the sheet with headers and data
+            self.service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range='A1',
+                valueInputOption='RAW',
+                body=body
+            ).execute()
+            
+            return spreadsheet_id
+        except Exception as e:
+            logging.error(f"Error creating and formatting sheet: {str(e)}")
+            return None
