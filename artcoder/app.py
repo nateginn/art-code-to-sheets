@@ -2,6 +2,7 @@ import sys
 from datetime import datetime
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextCursor, QTextCharFormat
 from PyQt6.QtWidgets import (
     QApplication,
     QCompleter,
@@ -15,6 +16,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QTextEdit,
+
 )
 
 LOCATIONS = ["Greeley", "UNC", "FOCO"]
@@ -88,6 +90,8 @@ class PDFConverterApp(QWidget):
         self.init_ui()
         self.extracted_data = []  # Store all extracted patient data
         self.current_patient_index = 0  # Track the current patient index
+        self.patient_entries = {}  # Dictionary to store entries for each patient
+        self.patient_insurance = {}  # Dictionary to store insurance for each patient
 
     def init_ui(self):
         self.setWindowTitle("PDF Converter Tool")
@@ -196,10 +200,15 @@ class PDFConverterApp(QWidget):
         self.next_patient_button = QPushButton("Next Patient")
         self.next_patient_button.clicked.connect(self.next_patient)
 
+        # Previous Patient button
+        self.prev_patient_button = QPushButton("Previous Patient")
+        self.prev_patient_button.clicked.connect(self.prev_patient)
+
         # Create a horizontal layout for the buttons
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.add_entry_button)
         button_layout.addWidget(self.next_patient_button)
+        button_layout.addWidget(self.prev_patient_button)
 
         extracted_data_layout.addLayout(button_layout)  # Add button layout to extracted data
 
@@ -215,9 +224,16 @@ class PDFConverterApp(QWidget):
         self.next_patient_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.next_patient_button.keyPressEvent = lambda event: self.next_patient() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
 
+        # Ensure Enter key activates the Previous Patient button
+        self.prev_patient_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.prev_patient_button.keyPressEvent = lambda event: self.prev_patient() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) else None
+
         # Viewbox for Entries
         self.entries_view = QTextEdit()
         self.entries_view.setReadOnly(True)
+        self.entries_view.mouseMoveEvent = self.on_viewbox_mouse_move
+        self.entries_view.mousePressEvent = self.on_viewbox_click
+        self.entries_view.leaveEvent = self.on_viewbox_leave
         extracted_data_layout.addWidget(self.entries_view)
 
         extracted_data_group.setLayout(extracted_data_layout)
@@ -272,7 +288,15 @@ class PDFConverterApp(QWidget):
         cpt_code = self.cpt_code_edit.text().strip()
         mod_units = self.mod_units_edit.text().strip()
         if cpt_code and mod_units:
-            self.entries_view.append(f"CPT Code: {cpt_code}, Mod/Units: {mod_units}")
+            entry = f"CPT Code: {cpt_code}, Mod/Units: {mod_units}"
+            self.entries_view.append(entry)
+            
+            # Store the entry for the current patient
+            current_patient = self.patient_name_edit.text()
+            if current_patient not in self.patient_entries:
+                self.patient_entries[current_patient] = []
+            self.patient_entries[current_patient].append(entry)
+            
             self.cpt_code_edit.clear()
             self.mod_units_edit.clear()
             self.cpt_code_edit.setFocus()  # Set focus back to the CPT Code field
@@ -285,21 +309,43 @@ class PDFConverterApp(QWidget):
         else:
             print("No more patients to process")
 
+    def prev_patient(self):
+        """Move to the previous patient"""
+        if self.current_patient_index > 1:  # We can go back
+            self.current_patient_index -= 2  # Subtract 2 because load_next_patient_data will add 1
+            self.load_next_patient_data()
+            self.insurance_edit.setFocus()
+        else:
+            print("Already at the first patient")
+
     def load_next_patient_data(self):
         """Load the next patient's data into the form"""
         if self.extracted_data and self.current_patient_index < len(self.extracted_data):
+            # Save current patient's data before loading next patient
+            current_patient = self.patient_name_edit.text()
+            if current_patient:
+                entries_text = self.entries_view.toPlainText().strip()
+                if entries_text:
+                    self.patient_entries[current_patient] = entries_text.split('\n')
+                self.patient_insurance[current_patient] = self.insurance_edit.text()
+            
             patient = self.extracted_data[self.current_patient_index]
-            self.patient_name_edit.setText(patient['name'])
+            patient_name = patient['name']
+            self.patient_name_edit.setText(patient_name)
             self.patient_dob_edit.setText(patient['dob'])
             self.provider_edit.setText(patient['provider'])
-            self.insurance_edit.setText(patient.get('insurance', ''))  # Use get() with default empty string
-            self.cpt_code_edit.clear()  # Clear previous CPT code entry
-            self.mod_units_edit.clear()  # Clear previous Mod/Units entry
             
-            # Clear the entries view box
-            self.entries_view.clear()  # Clear previous entries
+            # Restore insurance if previously saved, otherwise use default
+            self.insurance_edit.setText(self.patient_insurance.get(patient_name, patient.get('insurance', '')))
+            self.cpt_code_edit.clear()
+            self.mod_units_edit.clear()
             
-            # Increment the index for the next patient
+            # Clear and restore entries for the new patient
+            self.entries_view.clear()
+            if patient_name in self.patient_entries:
+                for entry in self.patient_entries[patient_name]:
+                    self.entries_view.append(entry)
+            
             self.current_patient_index += 1
         else:
             print("No more patients to load.")
@@ -308,6 +354,55 @@ class PDFConverterApp(QWidget):
         """Handle CPT code changes"""
         if text.startswith('99'):
             self.mod_units_edit.setText('25')
+
+    def on_viewbox_mouse_move(self, event):
+        """Highlight the line under the mouse cursor"""
+        cursor = self.entries_view.cursorForPosition(event.pos())
+        cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+        
+        # Remove all highlights first
+        cursor_all = QTextCursor(self.entries_view.document())
+        cursor_all.select(QTextCursor.SelectionType.Document)
+        format_normal = QTextCharFormat()
+        cursor_all.setCharFormat(format_normal)
+
+        # Add highlight to current line
+        format_new = QTextCharFormat()
+        format_new.setFontWeight(700)  # Bold
+        cursor.setCharFormat(format_new)
+
+    def on_viewbox_leave(self, event):
+        """Remove highlight when mouse leaves the viewbox"""
+        cursor_all = QTextCursor(self.entries_view.document())
+        cursor_all.select(QTextCursor.SelectionType.Document)
+        format_normal = QTextCharFormat()
+        cursor_all.setCharFormat(format_normal)
+
+    def on_viewbox_click(self, event):
+        """Handle single click on viewbox"""
+        cursor = self.entries_view.cursorForPosition(event.pos())
+        cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+        line = cursor.selectedText()
+        
+        # Extract CPT code and Mod/Units from the line
+        import re
+        match = re.match(r"CPT Code: (.*?), Mod/Units: (.*)", line)
+        if match:
+            cpt_code = match.group(1)
+            mod_units = match.group(2)
+            # Put the values back in the input fields
+            self.cpt_code_edit.setText(cpt_code)
+            self.mod_units_edit.setText(mod_units)
+            # Remove the line from viewbox and update patient entries
+            cursor.removeSelectedText()
+            cursor.deletePreviousChar()  # Remove the newline
+            
+            # Update stored entries for current patient
+            current_patient = self.patient_name_edit.text()
+            if current_patient in self.patient_entries:
+                self.patient_entries[current_patient] = self.entries_view.toPlainText().split('\n')
+                if '' in self.patient_entries[current_patient]:
+                    self.patient_entries[current_patient].remove('')
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
