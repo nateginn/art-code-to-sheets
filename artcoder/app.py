@@ -96,9 +96,8 @@ class PDFConverterApp(QWidget):
         self.patient_entries = {}  # Dictionary to store entries for each patient
         self.patient_insurance = {}  # Dictionary to store insurance for each patient
         
-        # Load environment variables
-        load_dotenv()
-        credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+        # Initialize sheets manager with credentials file
+        credentials_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'service_account.json')
         self.sheets_manager = SheetsManager(credentials_path)
 
     def init_ui(self):
@@ -418,15 +417,25 @@ class PDFConverterApp(QWidget):
                     self.patient_entries[current_patient].remove('')
 
     def export_to_sheets(self):
-        spreadsheet_id = 'your_spreadsheet_id_here'  # Replace with your actual spreadsheet ID
-        all_patient_data = []
-        for patient_name, entries in self.patient_entries.items():
-            insurance = self.patient_insurance.get(patient_name, '')
-            for entry in entries:
-                cpt_code, mod_units = entry.split(', Mod/Units: ')
-                cpt_code = cpt_code.replace('CPT Code: ', '')
-                all_patient_data.append([patient_name, insurance, cpt_code, mod_units])
-        self.sheets_manager.update_sheet(spreadsheet_id, all_patient_data)
+        try:
+            spreadsheet_id = '1Vr13r4kGpXFDrXPx9kS8r4_EaF-yQKJ7clbYxl_7-Zk'  # Replace with your actual spreadsheet ID
+            all_patient_data = []
+            # Add headers
+            all_patient_data.append(['Patient Name', 'Insurance', 'CPT Code', 'Mod/Units'])
+            
+            for patient_name, entries in self.patient_entries.items():
+                insurance = self.patient_insurance.get(patient_name, '')
+                for entry in entries:
+                    cpt_code, mod_units = entry.split(', Mod/Units: ')
+                    cpt_code = cpt_code.replace('CPT Code: ', '')
+                    all_patient_data.append([patient_name, insurance, cpt_code, mod_units])
+            
+            if self.sheets_manager.update_sheet(spreadsheet_id, all_patient_data):
+                self.status_label.setText("Successfully exported to Google Sheets")
+            else:
+                self.status_label.setText("Failed to export to Google Sheets")
+        except Exception as e:
+            self.status_label.setText(f"Error exporting to sheets: {str(e)}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
