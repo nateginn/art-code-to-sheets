@@ -37,6 +37,7 @@ class SheetsManager:
     def create_sheet(self, title):
         """Create a new Google Sheet and share it with the specified email"""
         try:
+            # Create the spreadsheet
             spreadsheet = {
                 'properties': {
                     'title': title
@@ -47,12 +48,29 @@ class SheetsManager:
             logging.info(f"Spreadsheet created: {spreadsheet_id}")
             logging.info(f"Spreadsheet URL: https://docs.google.com/spreadsheets/d/{spreadsheet_id}")
 
+            # Move the spreadsheet to the specified folder
+            self.move_sheet_to_folder(spreadsheet_id, '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw')
+
             # Share the spreadsheet
             self.share_sheet(spreadsheet_id)
             return spreadsheet_id
         except Exception as e:
             logging.error(f"Error creating sheet: {str(e)}")
             return None
+
+    def move_sheet_to_folder(self, spreadsheet_id, folder_id):
+        """Move the created spreadsheet to the specified folder"""
+        try:
+            # Move the spreadsheet to the specified folder
+            self.drive_service.files().update(
+                fileId=spreadsheet_id,
+                addParents=folder_id,
+                removeParents='root',  # Remove from the root folder
+                fields='id, parents'
+            ).execute()
+            logging.info(f"Spreadsheet moved to folder: {folder_id}")
+        except Exception as e:
+            logging.error(f"Error moving sheet to folder: {str(e)}")
 
     def share_sheet(self, spreadsheet_id):
         """Share the created spreadsheet with the specified email"""
