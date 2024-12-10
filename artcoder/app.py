@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 )
 
 from sheets_manager import SheetsManager
+from g_sheet_processor import SheetsProcessor
 
 LOCATIONS = ["Greeley", "UNC", "FOCO"]
 
@@ -244,6 +245,11 @@ class PDFConverterApp(QWidget):
         # Export to Sheets button
         self.export_to_sheets_button = QPushButton("Export to Sheets")
         self.export_to_sheets_button.clicked.connect(self.export_to_sheets)
+
+        # Button to load existing schedules
+        self.load_schedules_button = QPushButton("Load Existing Schedule")
+        self.load_schedules_button.clicked.connect(self.load_existing_schedule)
+        layout.addWidget(self.load_schedules_button)
 
         # Create a horizontal layout for the buttons
         button_layout = QHBoxLayout()
@@ -549,7 +555,7 @@ class PDFConverterApp(QWidget):
                 patient_provider = patient.get("provider", "")
                 
                 # Initialize a row with values for all columns
-                patient_row = [patient_name, patient_dob, patient_insurance, patient_provider, "", "", "", "", "", "", "", "", "", "", ""]
+                patient_row = [patient_name, patient_dob, patient_insurance, patient_provider, "", "", "", "", "", "", "", "", "", "", "", ""]
 
                 # Fill in the CPT codes and Mod/Units if available
                 entries = self.patient_entries.get(patient_name, [])
@@ -590,6 +596,48 @@ class PDFConverterApp(QWidget):
                 completed_patients += 1
 
         self.status_counter_label.setText(f"{completed_patients}/{total_patients}")
+
+    def load_existing_schedule(self):
+        """Load data from an existing Google Sheet in the specified folder"""
+        try:
+            folder_id = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
+            results = self.sheets_manager.drive_service.files().list(
+                q=f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet'",
+                fields="files(id, name)"
+            ).execute()
+            files = results.get('files', [])
+
+            if not files:
+                self.status_label.setText("No sheets found in the specified folder.")
+                return
+
+            sheet_names = [file['name'] for file in files]
+            selected_sheet, ok = QtWidgets.QInputDialog.getItem(self, "Select Sheet", "Choose a sheet:", sheet_names, 0, False)
+
+            if ok and selected_sheet:
+                selected_file = next(file for file in files if file['name'] == selected_sheet)
+                sheet_id = selected_file['id']
+
+                # Create an instance of SheetsProcessor and extract data
+                sheets_processor = SheetsProcessor(self.sheets_manager.service, self)
+                patients, dos = sheets_processor.extract_patients(sheet_id)
+
+                # Populate the DOS field in the GUI
+                self.dos_field.setText(dos)  # Set the DOS field with the extracted date
+
+                # Populate the GUI with extracted patient data
+                self.populate_gui_with_patients(patients)
+
+        except Exception as e:
+            self.status_label.setText(f"Error loading schedule: {str(e)}")
+            logging.error(f"Error loading schedule: {str(e)}")
+
+    def populate_gui_with_patients(self, patients):
+        """Populate the GUI fields with extracted patient data"""
+        if patients:
+            self.current_patient_index = 0
+            self.extracted_data = patients  # Store extracted data for navigation
+            self.load_next_patient_data()  # Load the first patient's data
 
 
 if __name__ == "__main__":
