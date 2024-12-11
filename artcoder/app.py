@@ -128,6 +128,15 @@ class PDFConverterApp(QWidget):
         )
         self.sheets_manager = SheetsManager(credentials_path)
 
+        # Connect focus in event to set default value and select text
+        self.mod_units_edit.focusInEvent = self.set_default_mod_units
+
+    def set_default_mod_units(self, event):
+        if not self.mod_units_edit.text():  # Check if the field is empty
+            self.mod_units_edit.setText("1")  # Set default value to 1
+            self.mod_units_edit.selectAll()  # Select the text to allow easy replacement
+        super().focusInEvent(event)  # Call the base class method
+
     def init_ui(self):
         self.setWindowTitle("PDF Converter Tool")
         layout = QVBoxLayout()
@@ -555,7 +564,7 @@ class PDFConverterApp(QWidget):
                 patient_provider = patient.get("provider", "")
                 
                 # Initialize a row with values for all columns
-                patient_row = [patient_name, patient_dob, patient_insurance, patient_provider, "", "", "", "", "", "", "", "", "", "", "", ""]
+                patient_row = [patient_name, patient_dob, patient_insurance, patient_provider, "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
 
                 # Fill in the CPT codes and Mod/Units if available
                 entries = self.patient_entries.get(patient_name, [])
