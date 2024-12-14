@@ -13,6 +13,7 @@ google-auth = "^2.36.0"
 google-api-python-client = "^2.154.0"
 pytest = "^8.3.4"
 pyqt6 = "^6.7.1"
+playwright = "^1.49.1"
 
 
 [tool.poetry.group.dev.dependencies]
