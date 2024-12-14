@@ -104,6 +104,35 @@ def extract_and_upload_to_sheets(pdf_path, sheet_name, credentials_path):
         print(f"An error occurred: {str(e)}")
         return None
 
+def upload_json_to_sheets(json_data, sheets_manager):
+    """
+    Upload JSON data to Google Sheets.
+    Args:
+        json_data (dict): The JSON data to upload.
+        sheets_manager (SheetsManager): An instance of SheetsManager for Google Sheets operations.
+    """
+    try:
+        # Extract data from JSON
+        date_of_service = json_data.get("date_of_service", "")
+        patients = json_data.get("patients", [])
+
+        # Prepare data for Google Sheets
+        values = [["Date of Service", "Name", "Birthday", "Provider"]]  # Headers
+        for patient in patients:
+            values.append([
+                date_of_service,
+                patient.get("name", ""),
+                patient.get("birthday", ""),
+                patient.get("provider", "")
+            ])
+
+        # Upload to Google Sheets
+        spreadsheet_id = sheets_manager.create_sheet("Agenda Data")
+        sheets_manager.update_values(spreadsheet_id, "Sheet1", values)
+        print("Data uploaded successfully to Google Sheets.")
+    except Exception as e:
+        print(f"Error uploading data to Google Sheets: {e}")
+
 def main():
     # Example usage
     pdf_path = './Practice Fusion.pdf'

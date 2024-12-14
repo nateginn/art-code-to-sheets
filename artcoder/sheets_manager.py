@@ -154,3 +154,25 @@ class SheetsManager:
         except Exception as e:
             logging.error(f"Error creating and formatting sheet: {str(e)}")
             return None
+
+    def update_values(self, spreadsheet_id, range_name, values):
+        """
+        Update values in a Google Sheet.
+        Args:
+            spreadsheet_id (str): The ID of the spreadsheet to update.
+            range_name (str): The range to update in A1 notation.
+            values (list): The values to update, as a list of lists.
+        """
+        try:
+            body = {
+                'values': values
+            }
+            result = self.service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=range_name,
+                valueInputOption="RAW",
+                body=body
+            ).execute()
+            print(f"{result.get('updatedCells')} cells updated.")
+        except Exception as e:
+            print(f"Error updating values in Google Sheets: {e}")

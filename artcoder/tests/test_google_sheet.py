@@ -1,12 +1,14 @@
 import os
 import logging
+import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def create_test_sheet(credentials_path, share_email):
+
+def create_test_sheet_with_data(credentials_path, share_email, json_data_path):
     logging.info("Starting the creation of the test sheet...")
     
     scopes = [
@@ -28,7 +30,7 @@ def create_test_sheet(credentials_path, share_email):
         return
 
     # Create spreadsheet
-    spreadsheet = {'properties': {'title': 'TEST SHEET'}}
+    spreadsheet = {'properties': {'title': 'TEST SHEET WITH DATA'}}
     try:
         spreadsheet = service.spreadsheets().create(body=spreadsheet).execute()
         spreadsheet_id = spreadsheet['spreadsheetId']
@@ -51,22 +53,39 @@ def create_test_sheet(credentials_path, share_email):
         logging.info(f"Spreadsheet shared with {share_email}")
     except Exception as e:
         logging.error(f"Failed to share spreadsheet: {str(e)}")
+        return
 
-    # Insert data
-    values = [['Column 1'], ['success']]
-    body = {'values': values}
+    # Load JSON data
     try:
+        with open(json_data_path, 'r') as f:
+            data = json.load(f)
+        logging.info("JSON data loaded successfully.")
+    except Exception as e:
+        logging.error(f"Failed to load JSON data: {str(e)}")
+        return
+
+    # Prepare data for Google Sheets
+    headers = ["Name", "DOB", "Provider"]
+    values = [headers]
+    for patient in data.get('patients', []):
+        values.append([patient['name'], patient['birthday'], patient['provider']])
+
+    # Update the sheet with headers and data
+    try:
+        body = {'values': values}
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
             range='A1',
             valueInputOption='RAW',
             body=body
         ).execute()
-        logging.info("Data uploaded successfully.")
+        logging.info("Data uploaded to Google Sheet successfully.")
     except Exception as e:
-        logging.error(f"Failed to upload data: {str(e)}")
+        logging.error(f"Failed to upload data to Google Sheet: {str(e)}")
+
 
 if __name__ == "__main__":
-    credentials_path = '../service_account.json'  # Path to your service account JSON
+    credentials_path = '../../service_account.json'  # Path to your service account JSON
     share_email = 'growyourbiz4ever@gmail.com'  # Email to share the sheet with
-    create_test_sheet(credentials_path, share_email)
+    json_data_path = '../../artschedretriever/agenda_data.json'  # Path to the JSON data file
+    create_test_sheet_with_data(credentials_path, share_email, json_data_path)

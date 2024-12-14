@@ -1,4 +1,5 @@
 # artschedretriever/scheduler.py
+# No changes needed in scheduler.py for folder ID integration
 import asyncio
 import logging
 import json
@@ -54,7 +55,7 @@ class ScheduleRetriever:
 
             # Navigate to desired month (if needed)
             current_month = await self.page.locator(".datepicker-days table thead tr th.switch").text_content()
-            target_month = "November 2024"  # You may want to make this configurable
+            target_month = "August 2024"  # You may want to make this configurable
 
             while current_month != target_month:
                 await self.page.click(".datepicker-days th.prev")
@@ -64,7 +65,7 @@ class ScheduleRetriever:
             await asyncio.sleep(3)
 
             print(f"Selecting date in {target_month}...")
-            await self.page.click("td.day:not(.old):not(.new):text('21')")  # Excludes days from prev/next months
+            await self.page.click("td.day:not(.old):not(.new):text('8')")  # Excludes days from prev/next months
             await asyncio.sleep(5)
             
              # Print Schedule with Playwright
@@ -92,10 +93,14 @@ class ScheduleRetriever:
                     agenda_container = await iframe.wait_for_selector("div.print-agenda-items.print-only", timeout=10000)
                     await asyncio.sleep(3)
 
-                    print("Extracting the date of service...")
+                    # Extract the date of service
                     date_element = await agenda_container.query_selector("div.inline-flex-group-v2 h3")
                     date_of_service = await date_element.text_content() if date_element else "Date not found"
-                    print(f"Date of Service: {date_of_service}")
+                    print(f"Extracted date of service: {date_of_service}")
+
+                    # Check if date_of_service is valid
+                    if date_of_service == "Date not found":
+                        raise Exception("Failed to extract date of service")
 
                     print("Finding patient rows...")
                     patient_rows = await agenda_container.query_selector_all("tr.content-container")
@@ -126,13 +131,18 @@ class ScheduleRetriever:
                     print("Saving data to 'agenda_data.json'...")
                     with open("agenda_data.json", "w") as file:
                         json.dump({"date_of_service": date_of_service, "patients": patients}, file, indent=4)
-                    print("Data saved successfully.")
+                    print("Data saved successfully to JSON.")
+
+                    # Prepare data for Google Sheets
+                    return {"date_of_service": date_of_service, "patients": patients}
 
                 except Exception as e:
                     print(f"Error during content extraction: {e}")
+                    return None
 
             except Exception as e:
                 print(f"Failed to trigger or load the printable agenda format: {e}")
+                return None
 
         except Exception as e:
             logging.error(f"Navigation failed: {str(e)}")
