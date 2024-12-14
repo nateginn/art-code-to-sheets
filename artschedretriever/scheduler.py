@@ -30,7 +30,7 @@ class ScheduleRetriever:
             await self.page.click("button[type='submit']")
             
             print("Waiting for user to complete 2FA...")
-            await asyncio.sleep(15)
+            await asyncio.sleep(25)
             
             print("Navigating to agenda...")
             await self.page.goto(self.agenda_url)
@@ -62,11 +62,11 @@ class ScheduleRetriever:
                 await asyncio.sleep(2)
                 current_month = await self.page.locator(".datepicker-days table thead tr th.switch").text_content()  # Updated  
             print(f"{target_month} selected.")
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
 
             print(f"Selecting date in {target_month}...")
             await self.page.click("td.day:not(.old):not(.new):text('8')")  # Excludes days from prev/next months
-            await asyncio.sleep(5)
+            await asyncio.sleep(2)
             
              # Print Schedule with Playwright
             print("Starting the process to print the schedule...")
@@ -76,7 +76,7 @@ class ScheduleRetriever:
                 print("Attempting to click the 'Print Schedule' button...")
                 await self.page.click("button.btn--default[data-element='btn-schedule-print']")
                 print("'Print Schedule' button clicked successfully. Waiting for the page to load printable format...")
-                await asyncio.sleep(5)  # Allow time for the printable format to load
+                await asyncio.sleep(3)  # Allow time for the printable format to load
 
                 # Step 2: Locate the printable agenda content
                 print("Locating the printable agenda content...")
@@ -87,11 +87,11 @@ class ScheduleRetriever:
                     iframe = await iframe_element.content_frame()
                     if not iframe:
                         raise Exception("Failed to access the iframe.")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(2)
 
                     print("Locating the agenda container...")
                     agenda_container = await iframe.wait_for_selector("div.print-agenda-items.print-only", timeout=10000)
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(2)
 
                     # Extract the date of service
                     date_element = await agenda_container.query_selector("div.inline-flex-group-v2 h3")
@@ -109,7 +109,7 @@ class ScheduleRetriever:
                     patients = []
                     for index, row in enumerate(patient_rows):
                         print(f"Processing row {index + 1}...")
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(1)
 
                         patient_name_element = await row.query_selector("td.patient-column")
                         patient_name = await patient_name_element.inner_text() if patient_name_element else "Name not found"
