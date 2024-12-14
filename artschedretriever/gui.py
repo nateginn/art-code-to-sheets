@@ -44,6 +44,13 @@ class SheetManagementGUI(QWidget):
         self.patient_insurance = {}
         self.extracted_data = []
         self.init_ui()
+        # Add focus event handler for mod_units
+        self.mod_units_edit.focusInEvent = self.set_default_mod_units
+
+    def set_default_mod_units(self, event):
+        if not self.mod_units_edit.text():
+            self.mod_units_edit.setText("1")
+            self.mod_units_edit.selectAll()
 
     def init_ui(self):
         self.setWindowTitle("Sheet Management Tool")
@@ -66,6 +73,11 @@ class SheetManagementGUI(QWidget):
         
         location_group.setLayout(location_layout)
         layout.addWidget(location_group)
+
+        # Add Load Schedule button here, after location group
+        self.load_button = QPushButton("Load Schedule")
+        self.load_button.clicked.connect(self.load_existing_schedule)
+        layout.addWidget(self.load_button)
 
         # Patient Data Section
         data_group = QGroupBox("Patient Data")
@@ -131,33 +143,40 @@ class SheetManagementGUI(QWidget):
         # Control Buttons
         button_layout = QHBoxLayout()
         
-        self.load_button = QPushButton("Load Schedule")
-        self.load_button.clicked.connect(self.load_existing_schedule)
-        
         self.add_entry_button = QPushButton("Add Entry")
         self.add_entry_button.clicked.connect(self.add_entry_to_viewbox)
-        
-        self.prev_button = QPushButton("Previous Patient")
-        self.prev_button.clicked.connect(self.prev_patient)
-        
+
         self.next_button = QPushButton("Next Patient")
         self.next_button.clicked.connect(self.next_patient)
-        
-        self.save_button = QPushButton("Save Changes")
-        self.save_button.clicked.connect(self.save_changes)
-        
-        button_layout.addWidget(self.load_button)
+
+        self.prev_button = QPushButton("Previous Patient")
+        self.prev_button.clicked.connect(self.prev_patient)
+
         button_layout.addWidget(self.add_entry_button)
-        button_layout.addWidget(self.prev_button)
         button_layout.addWidget(self.next_button)
-        button_layout.addWidget(self.save_button)
-        
+        button_layout.addWidget(self.prev_button)
+
         data_layout.addLayout(button_layout)
+
+        # Add keyboard activation for buttons
+        for button in [self.load_button, self.add_entry_button, self.prev_button, 
+                       self.next_button]:
+            button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            button.keyPressEvent = lambda event, btn=button: (
+                btn.click() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) 
+                else None
+            )
+
+        # Add field navigation
+        self.cpt_code_edit.returnPressed.connect(self.mod_units_edit.setFocus)
+        self.mod_units_edit.returnPressed.connect(self.validate_and_add_entry)
 
         # Entries View
         self.entries_view = QTextEdit()
         self.entries_view.setReadOnly(True)
         self.entries_view.mousePressEvent = self.on_viewbox_click
+        self.entries_view.mouseMoveEvent = self.on_viewbox_mouse_move
+        self.entries_view.leaveEvent = self.on_viewbox_leave
         data_layout.addWidget(self.entries_view)
 
         data_group.setLayout(data_layout)
@@ -169,6 +188,45 @@ class SheetManagementGUI(QWidget):
         
         self.counter_label = QLabel("0/0")
         layout.addWidget(self.counter_label)
+
+        # Create and add save button
+        self.save_button = QPushButton("Save Changes")
+        self.save_button.clicked.connect(self.save_changes)
+
+        # Create close button
+        self.close_button = QPushButton("Close")
+        self.close_button.clicked.connect(self.close_application)
+        self.close_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.close_button.keyPressEvent = lambda event: (
+            self.close_application() if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) 
+            else None
+        )
+
+        # Modify bottom button layout to push close button right
+        bottom_button_layout = QHBoxLayout()
+        bottom_button_layout.addWidget(self.save_button)
+        bottom_button_layout.addStretch()  # This pushes the close button to the right
+        bottom_button_layout.addWidget(self.close_button)
+
+        layout.addLayout(bottom_button_layout)
+
+        # Add focus highlighting style
+        focus_style = """
+        QLineEdit:focus {
+            background-color: #FFFFD4;  /* Very light yellow */
+        }
+        """
+
+        # Apply style to input fields
+        self.cpt_code_edit.setStyleSheet(focus_style)
+        self.mod_units_edit.setStyleSheet(focus_style)
+        self.insurance_edit.setStyleSheet(focus_style)
+        self.patient_name_edit.setStyleSheet(focus_style)
+        self.patient_dob_edit.setStyleSheet(focus_style)
+        self.provider_edit.setStyleSheet(focus_style)
+
+        # Prevent viewbox from being part of tab order
+        self.entries_view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.setLayout(layout)
         self.setMinimumWidth(600)
@@ -238,18 +296,57 @@ class SheetManagementGUI(QWidget):
             if cpt or mod:
                 self.entries_view.append(f"CPT Code: {cpt}, Mod/Units: {mod}")
 
-    def add_entry_to_viewbox(self):
+    def check_duplicate_cpt(self, cpt_code):
+        entries_text = self.entries_view.toPlainText()
+        entries = entries_text.split('\n') if entries_text else []
+        
+        for entry in entries:
+            if entry and 'CPT Code:' in entry:
+                existing_cpt = entry.split('CPT Code:')[1].split(',')[0].strip()
+                if existing_cpt == cpt_code:
+                    return True
+        return False
+
+    def validate_fields(self):
         cpt_code = self.cpt_code_edit.text().strip()
         mod_units = self.mod_units_edit.text().strip()
+        insurance = self.insurance_edit.text().strip()
+
+        if insurance and insurance not in COMMON_INSURANCES:
+            self.status_label.setText("Error: Insurance must be from the predefined list")
+            self.insurance_edit.setFocus()
+            return False
 
         if not cpt_code or len(cpt_code) != 5:
-            self.status_label.setText("Error: CPT Code must be 5 digits")
-            return
+            self.status_label.setText("Error: CPT Code must be a 5-digit code")
+            self.cpt_code_edit.setFocus()
+            return False
+
+        if cpt_code not in COMMON_CPT_CODES:
+            self.status_label.setText("Error: CPT Code must be from the predefined list")
+            self.cpt_code_edit.setFocus()
+            return False
+
+        if self.check_duplicate_cpt(cpt_code):
+            self.status_label.setText("Error: This CPT code is already entered. Select the code in the viewbox to modify.")
+            self.cpt_code_edit.setFocus()
+            return False
 
         if not mod_units:
             self.status_label.setText("Error: Mod/Units required")
+            self.mod_units_edit.setFocus()
+            return False
+
+        self.status_label.setText("")
+        return True
+
+    def add_entry_to_viewbox(self):
+        if not self.validate_fields():
             return
 
+        cpt_code = self.cpt_code_edit.text().strip()
+        mod_units = self.mod_units_edit.text().strip()
+        
         entry = f"CPT Code: {cpt_code}, Mod/Units: {mod_units}"
         self.entries_view.append(entry)
         
@@ -270,11 +367,19 @@ class SheetManagementGUI(QWidget):
             self.update_counter()
 
     def next_patient(self):
+        current_insurance = self.insurance_edit.text().strip()
+        
+        if current_insurance and current_insurance not in COMMON_INSURANCES:
+            self.status_label.setText("Error: Insurance must be from the predefined list")
+            self.insurance_edit.setFocus()
+            return
+        
         if self.current_patient_index < len(self.extracted_data) - 1:
             self.save_current_patient_state()
             self.current_patient_index += 1
             self.load_current_patient()
             self.update_counter()
+            self.insurance_edit.setFocus()
 
     def save_current_patient_state(self):
         current_patient = self.patient_name_edit.text()
@@ -283,6 +388,9 @@ class SheetManagementGUI(QWidget):
             entries = self.entries_view.toPlainText().strip()
             if entries:
                 self.patient_entries[current_patient] = entries.split('\n')
+            elif current_patient in self.patient_entries:
+                # Clear entries if viewbox is empty
+                self.patient_entries[current_patient] = []
 
     def save_changes(self):
         try:
@@ -340,20 +448,23 @@ class SheetManagementGUI(QWidget):
         cursor.select(QTextCursor.SelectionType.LineUnderCursor)
         line = cursor.selectedText()
 
-        # Extract CPT code and Mod/Units from the line
         import re
         match = re.match(r"CPT Code: (.*?), Mod/Units: (.*)", line)
         if match:
             cpt_code = match.group(1)
             mod_units = match.group(2)
             
-            # Put values back in input fields
+            # Clear fields before setting new values
+            self.cpt_code_edit.clear()
+            self.mod_units_edit.clear()
+            
+            # Set new values
             self.cpt_code_edit.setText(cpt_code)
             self.mod_units_edit.setText(mod_units)
             
-            # Remove the line from viewbox
+            # Remove the line from viewbox and update patient entries
             cursor.removeSelectedText()
-            cursor.deletePreviousChar()  # Remove newline
+            cursor.deletePreviousChar()  # Remove the newline
 
             # Update stored entries for current patient
             current_patient = self.patient_name_edit.text()
@@ -361,8 +472,70 @@ class SheetManagementGUI(QWidget):
                 self.patient_entries[current_patient] = self.entries_view.toPlainText().split("\n")
                 if "" in self.patient_entries[current_patient]:
                     self.patient_entries[current_patient].remove("")
+            
+            # Set focus to CPT field
+            self.cpt_code_edit.setFocus()
+
+    def on_viewbox_mouse_move(self, event):
+        cursor = self.entries_view.cursorForPosition(event.pos())
+        cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+        
+        # Remove existing formatting
+        cursor_all = QTextCursor(self.entries_view.document())
+        cursor_all.select(QTextCursor.SelectionType.Document)
+        format_normal = QTextCharFormat()
+        cursor_all.setCharFormat(format_normal)
+        
+        # Add hover format
+        format_hover = QTextCharFormat()
+        format_hover.setFontWeight(700)  # Bold
+        format_hover.setFontUnderline(True)  # Underline
+        cursor.setCharFormat(format_hover)
+
+    def on_viewbox_leave(self, event):
+        cursor = QTextCursor(self.entries_view.document())
+        cursor.select(QTextCursor.SelectionType.Document)
+        format_normal = QTextCharFormat()
+        cursor.setCharFormat(format_normal)
 
     def update_counter(self):
         """Update the status counter display"""
         if self.extracted_data:
             self.counter_label.setText(f"{self.current_patient_index + 1}/{len(self.extracted_data)}")
+
+    def validate_and_add_entry(self):
+        if not self.mod_units_edit.text().strip():
+            self.status_label.setText("Error: Mod/Units required")
+            self.mod_units_edit.setFocus()
+            return
+        self.add_entry_to_viewbox()
+        self.cpt_code_edit.setFocus()
+
+    def close_application(self):
+        reply = QMessageBox.question(
+            self, 
+            'Confirm Exit',
+            'Would you like to save changes before closing?',
+            QMessageBox.StandardButton.Yes | 
+            QMessageBox.StandardButton.No | 
+            QMessageBox.StandardButton.Cancel
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Save changes first
+            self.save_changes()
+            self.close()
+            QApplication.quit()
+        elif reply == QMessageBox.StandardButton.No:
+            # Close without saving
+            self.close()
+            QApplication.quit()
+        # If Cancel, do nothing and return to application
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    window = SheetManagementGUI()
+    window.show()
+    sys.exit(app.exec())
