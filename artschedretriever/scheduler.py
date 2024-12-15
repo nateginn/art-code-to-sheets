@@ -55,7 +55,7 @@ class ScheduleRetriever:
 
             # Navigate to desired month (if needed)
             current_month = await self.page.locator(".datepicker-days table thead tr th.switch").text_content()
-            target_month = "August 2024"  # You may want to make this configurable
+            target_month = "November 2024"  # You may want to make this configurable
 
             while current_month != target_month:
                 await self.page.click(".datepicker-days th.prev")
@@ -65,7 +65,7 @@ class ScheduleRetriever:
             await asyncio.sleep(1)
 
             print(f"Selecting date in {target_month}...")
-            await self.page.click("td.day:not(.old):not(.new):text('8')")  # Excludes days from prev/next months
+            await self.page.click("td.day:not(.old):not(.new):text('27')")  # Excludes days from prev/next months
             await asyncio.sleep(1)
             
              # Print Schedule with Playwright

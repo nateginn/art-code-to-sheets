@@ -7,10 +7,10 @@ from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QLineEdit, QComboBox, QPushButton, QTextEdit,
-    QGroupBox, QMessageBox, QCompleter
+    QGroupBox, QMessageBox, QCompleter, QInputDialog
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCharFormat, QTextCursor
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCharFormat, QTextCursor, QShortcut, QKeySequence, QMovie, QFont
 
 from sheets_integration import SheetsManager
 
@@ -43,9 +43,12 @@ class SheetManagementGUI(QWidget):
         self.patient_entries = {}
         self.patient_insurance = {}
         self.extracted_data = []
+        
+        # Add attributes for timed message clearing
+        self.status_message_timer = None
+        self.previous_status = ""
+
         self.init_ui()
-        # Add focus event handler for mod_units
-        self.mod_units_edit.focusInEvent = self.set_default_mod_units
 
     def set_default_mod_units(self, event):
         if not self.mod_units_edit.text():
@@ -55,22 +58,160 @@ class SheetManagementGUI(QWidget):
     def init_ui(self):
         self.setWindowTitle("Sheet Management Tool")
         layout = QVBoxLayout()
-        
-        # Location Selection
-        location_group = QGroupBox("Location")
+
+        # Add dark style to the application
+        dark_style = """
+            QWidget {
+                background-color: #2B2B2B;
+                color: #FFFFFF;
+            }
+            
+            QLineEdit {
+                background-color: #345173;
+                border: 1px solid #4A90E2;
+                border-radius: 4px;
+                padding: 4px;
+                color: white;
+                selection-background-color: #4A90E2;
+                selection-color: white;
+            }
+            
+            QLineEdit:focus {
+                border: 4px solid #5AA0F2;
+                background-color: #3A5A80;
+            }
+            
+            QGroupBox {
+                background-color: #2C4058;
+                border: 2px solid #345173;
+                border-radius: 6px;
+                margin-top: 12px;
+                padding-top: 10px;
+                font-weight: bold;
+            }
+            
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+                color: #4A90E2;
+            }
+            
+            QPushButton {
+                background-color: #4A90E2;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                color: white;
+                font-weight: bold;
+            }
+            
+            QPushButton:hover {
+                background-color: #5AA0F2;
+            }
+            
+            QPushButton:pressed {
+                background-color: #3A80D2;
+            }
+            
+            QPushButton:disabled {
+                background-color: #2C4058;
+                color: #808080;
+            }
+            
+            QTextEdit {
+                background-color: #345173;
+                border: 1px solid #4A90E2;
+                border-radius: 4px;
+                padding: 4px;
+                color: white;
+            }
+            
+            QLabel {
+                color: #E0E0E0;
+                background-color: transparent;
+            }
+            
+            QComboBox {
+                background-color: #345173;
+                border: 1px solid #4A90E2;
+                border-radius: 4px;
+                padding: 4px;
+                color: white;
+            }
+            
+            QComboBox::drop-down {
+                border: none;
+            }
+            
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #4A90E2;
+                margin-right: 5px;
+            }
+            
+            QScrollBar:vertical {
+                border: none;
+                background: #2B2B2B;
+                width: 10px;
+                margin: 0px;
+            }
+
+            QScrollBar::handle:vertical {
+                background: #4A90E2;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            
+            QMessageBox {
+                background-color: #2B2B2B;
+            }
+            
+            QMessageBox QPushButton {
+                min-width: 80px;
+            }
+        """
+        self.setStyleSheet(dark_style)
+
+        # Location and DOS Section
+        location_group = QGroupBox("Location and Date of Service")
         location_layout = QHBoxLayout()
-        self.location_combo = QComboBox()
-        self.location_combo.addItems(LOCATIONS)
-        location_layout.addWidget(self.location_combo)
-        
-        # DOS Field
-        dos_label = QLabel("DOS:")
-        self.dos_field = QLabel("")
+
+        # Set up label font (14pt, bold)
+        label_font = QFont()
+        label_font.setPointSize(14)
+        label_font.setBold(True)
+
+        # Set up field font (16pt, bold)
+        field_font = QFont()
+        field_font.setPointSize(16)
+        field_font.setBold(True)
+
+        # Location labels and field
+        location_label_static = QLabel("Location: ")
+        location_label_static.setFont(label_font)
+        self.location_label = QLabel("")
+        self.location_label.setFont(field_font)
+        location_layout.addWidget(location_label_static)
+        location_layout.addWidget(self.location_label)
+
+        # DOS labels and field
         dos_layout = QHBoxLayout()
+        dos_label = QLabel("DOS: ")
+        dos_label.setFont(label_font)
+        self.dos_field = QLabel("")
+        self.dos_field.setFont(field_font)
         dos_layout.addWidget(dos_label)
         dos_layout.addWidget(self.dos_field)
+
+        # Add layouts
         location_layout.addLayout(dos_layout)
-        
         location_group.setLayout(location_layout)
         layout.addWidget(location_group)
 
@@ -210,27 +351,29 @@ class SheetManagementGUI(QWidget):
 
         layout.addLayout(bottom_button_layout)
 
-        # Add focus highlighting style
-        focus_style = """
-        QLineEdit:focus {
-            background-color: #FFFFD4;  /* Very light yellow */
-        }
-        """
-
-        # Apply style to input fields
-        self.cpt_code_edit.setStyleSheet(focus_style)
-        self.mod_units_edit.setStyleSheet(focus_style)
-        self.insurance_edit.setStyleSheet(focus_style)
-        self.patient_name_edit.setStyleSheet(focus_style)
-        self.patient_dob_edit.setStyleSheet(focus_style)
-        self.provider_edit.setStyleSheet(focus_style)
-
         # Prevent viewbox from being part of tab order
         self.entries_view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.setLayout(layout)
         self.setMinimumWidth(600)
         self.setMinimumHeight(500)
+
+        # Add loading indicator
+        self.loading_label = QLabel("")
+        self.loading_movie = QMovie("loading.gif")
+        self.loading_label.setMovie(self.loading_movie)
+        self.loading_label.hide()
+        
+        # Add search field
+        search_layout = QHBoxLayout()
+        search_label = QLabel("Search:")
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("Search patients...")
+        self.search_edit.textChanged.connect(self.filter_patients)
+        self.search_edit.editingFinished.connect(self.clear_search)
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self.search_edit)
+        layout.insertLayout(1, search_layout)  # Add after location group
 
     def load_existing_schedule(self):
         try:
@@ -245,8 +388,6 @@ class SheetManagementGUI(QWidget):
                 self.status_label.setText("No sheets found in the specified folder.")
                 return
 
-            # Show sheet selection dialog
-            from PyQt6.QtWidgets import QInputDialog
             sheet_names = [file['name'] for file in files]
             selected_sheet, ok = QInputDialog.getItem(
                 self, "Select Sheet", "Choose a sheet:", sheet_names, 0, False
@@ -256,12 +397,19 @@ class SheetManagementGUI(QWidget):
                 selected_file = next(file for file in files if file['name'] == selected_sheet)
                 sheet_id = selected_file['id']
                 
-                # Extract date from sheet title
+                # Extract location and date from sheet title
                 if "ART-" in selected_sheet:
-                    self.dos_field.setText(selected_sheet.split(" ")[-1])
+                    # Parse location and date from sheet name (format: "ART-LOCATION DATE")
+                    parts = selected_sheet.split("ART-")[1].split(" ")
+                    location = parts[0]
+                    date = " ".join(parts[1:])
+                    # Just set the location value, not the full "Location: " prefix
+                    self.location_label.setText(location)
+                    self.dos_field.setText(date)
 
-                # Load sheet data using new method
+                # Load sheet data and disable load button
                 self.extracted_data = self.sheets_manager.extract_sheet_data(sheet_id)
+                self.load_button.setEnabled(False)
                 
                 if not self.extracted_data:
                     self.status_label.setText("No data found in sheet")
@@ -270,6 +418,7 @@ class SheetManagementGUI(QWidget):
                 self.current_patient_index = 0
                 self.load_current_patient()
                 self.update_counter()
+                self.insurance_edit.setFocus()
                     
         except Exception as e:
             self.status_label.setText(f"Error loading schedule: {str(e)}")
@@ -308,11 +457,17 @@ class SheetManagementGUI(QWidget):
         return False
 
     def validate_fields(self):
+        """Validate form fields before adding entry"""
+        insurance = self.insurance_edit.text().strip()
         cpt_code = self.cpt_code_edit.text().strip()
         mod_units = self.mod_units_edit.text().strip()
-        insurance = self.insurance_edit.text().strip()
 
-        if insurance and insurance not in COMMON_INSURANCES:
+        if not insurance:
+            self.status_label.setText("Error: Insurance must be selected")
+            self.insurance_edit.setFocus()
+            return False
+
+        if insurance not in COMMON_INSURANCES:
             self.status_label.setText("Error: Insurance must be from the predefined list")
             self.insurance_edit.setFocus()
             return False
@@ -367,12 +522,29 @@ class SheetManagementGUI(QWidget):
             self.update_counter()
 
     def next_patient(self):
+        """Enhanced next patient validation and navigation"""
         current_insurance = self.insurance_edit.text().strip()
+        entries = self.entries_view.toPlainText().strip()
         
-        if current_insurance and current_insurance not in COMMON_INSURANCES:
-            self.status_label.setText("Error: Insurance must be from the predefined list")
+        if not current_insurance:
+            self.show_timed_status("Please select an insurance before proceeding")
             self.insurance_edit.setFocus()
             return
+            
+        if current_insurance not in COMMON_INSURANCES:
+            self.show_timed_status("Invalid insurance selected")
+            self.insurance_edit.setFocus()
+            return
+            
+        if not entries:
+            confirm = QMessageBox.question(
+                self,
+                "No Entries",
+                "Proceed to next patient without any CPT entries?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if confirm == QMessageBox.StandardButton.No:
+                return
         
         if self.current_patient_index < len(self.extracted_data) - 1:
             self.save_current_patient_state()
@@ -399,7 +571,8 @@ class SheetManagementGUI(QWidget):
             
             # Get current sheet ID
             folder_id = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
-            location = self.location_combo.currentText()
+            # Extract location from label text (format: "Location: LOCATION")
+            location = self.location_label.text().split(": ")[1]
             service_date = self.dos_field.text()
             sheet_title = f"ART-{location} {service_date}"
             
@@ -435,13 +608,18 @@ class SheetManagementGUI(QWidget):
                                 patient_data['entries'].append({'cpt': cpt, 'mod_units': mod})
                     
                     # Update the patient data
-                    self.sheets_manager.update_patient_data(spreadsheet_id, patient_data, index)
+                    success = self.sheets_manager.update_patient_data(spreadsheet_id, patient_data, index)
+                    if not success:
+                        self.status_label.setText("Error updating patient data")
+                        return
             
             self.status_label.setText("Changes saved successfully")
-            
+            return True  # Return True to indicate successful save
+                
         except Exception as e:
             self.status_label.setText(f"Error saving changes: {str(e)}")
             logging.error(f"Error saving changes: {str(e)}")
+            return False  # Return False to indicate save failure
 
     def on_viewbox_click(self, event):
         cursor = self.entries_view.cursorForPosition(event.pos())
@@ -522,15 +700,104 @@ class SheetManagementGUI(QWidget):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            # Save changes first
-            self.save_changes()
-            self.close()
-            QApplication.quit()
+            # Save current patient state first
+            self.save_current_patient_state()
+            # Then save all changes
+            if self.save_changes():  # Only proceed to close if save was successful
+                QTimer.singleShot(1000, self.final_close)
         elif reply == QMessageBox.StandardButton.No:
-            # Close without saving
-            self.close()
-            QApplication.quit()
-        # If Cancel, do nothing and return to application
+            self.final_close()
+
+    def final_close(self):
+        """Helper method to actually close the application"""
+        self.close()
+        QApplication.quit()
+
+    def show_timed_status(self, message, duration=3000):
+        """Display status message that auto-clears after duration"""
+        self.previous_status = self.status_label.text()
+        self.status_label.setText(message)
+        
+        if self.status_message_timer is not None:
+            self.status_message_timer.stop()
+        
+        self.status_message_timer = QTimer()
+        self.status_message_timer.setSingleShot(True)
+        self.status_message_timer.timeout.connect(lambda: self.status_label.setText(self.previous_status))
+        self.status_message_timer.start(duration)
+
+    def setup_shortcuts(self):
+        """Set up keyboard shortcuts for common actions"""
+        # Add to class attributes
+        self.shortcuts = {
+            'ctrl+s': QShortcut(QKeySequence('Ctrl+S'), self),
+            'ctrl+z': QShortcut(QKeySequence('Ctrl+Z'), self),
+            'ctrl+n': QShortcut(QKeySequence('Ctrl+N'), self),
+            'ctrl+p': QShortcut(QKeySequence('Ctrl+P'), self),
+        }
+        
+        self.shortcuts['ctrl+s'].activated.connect(self.save_changes)
+        self.shortcuts['ctrl+n'].activated.connect(self.next_patient)
+        self.shortcuts['ctrl+p'].activated.connect(self.prev_patient)
+
+    def setup_cpt_validation(self):
+        """Add real-time validation for CPT code input"""
+        self.cpt_code_edit.textChanged.connect(self.validate_cpt_realtime)
+
+    def validate_cpt_realtime(self):
+        """Validate CPT code as user types"""
+        cpt = self.cpt_code_edit.text().strip()
+        if len(cpt) == 5:
+            if cpt not in COMMON_CPT_CODES:
+                self.cpt_code_edit.setStyleSheet(
+                    "QLineEdit { background-color: #802020; border: 2px solid #FF4040; }"
+                )
+                self.show_timed_status("Invalid CPT code")
+            else:
+                self.cpt_code_edit.setStyleSheet(
+                    "QLineEdit { background-color: #204020; border: 2px solid #40FF40; }"
+                )
+                self.show_timed_status("Valid CPT code")
+        elif len(cpt) > 5:
+            self.cpt_code_edit.setStyleSheet(
+                "QLineEdit { background-color: #802020; border: 2px solid #FF4040; }"
+            )
+            self.show_timed_status("CPT code must be 5 digits")
+        else:
+            self.cpt_code_edit.setStyleSheet("")  # Reset to default dark theme style
+
+    def setup_autosave(self):
+        """Initialize autosave timer"""
+        self.autosave_timer = Qt.QTimer()
+        self.autosave_timer.timeout.connect(self.perform_autosave)
+        self.autosave_timer.start(300000)  # Autosave every 5 minutes
+
+    def perform_autosave(self):
+        """Perform automatic save of current state"""
+        try:
+            self.save_current_patient_state()
+            self.show_timed_status("Auto-saved", 2000)
+        except Exception as e:
+            self.show_timed_status(f"Autosave failed: {str(e)}", 5000)
+
+    def filter_patients(self):
+        """Filter patients based on search text"""
+        search_text = self.search_edit.text().lower()
+        if not search_text:
+            self.load_current_patient()
+            return
+            
+        for i, patient in enumerate(self.extracted_data):
+            if (search_text in patient.get('Name', '').lower() or 
+                search_text in patient.get('DOB', '').lower()):
+                self.current_patient_index = i
+                self.load_current_patient()
+                return
+
+    def clear_search(self):
+        """Clear search field when user finishes editing"""
+        if self.search_edit.text():
+            self.search_edit.clear()
 
 if __name__ == "__main__":
     import sys

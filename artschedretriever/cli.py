@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import QApplication
 from gui import SheetManagementGUI
 
 FOLDER_ID = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
-LOCATION = "UNC"
+LOCATION = "Greeley"
 CREDENTIALS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'service_account.json')
 
 async def run_automation():
