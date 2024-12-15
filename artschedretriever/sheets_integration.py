@@ -280,28 +280,3 @@ class SheetsManager:
             formatted_row[f"Mod/Units{i}"] = mod_units
 
         return formatted_row
-
-    # Add this new helper method:
-    def format_patient_data(self, patient_data):
-        """Format patient data according to standardized column structure"""
-        formatted_row = {col: "" for col in SHEET_COLUMNS}
-        formatted_row.update(
-            {
-                "Name": patient_data.get("name", ""),
-                "DOB": patient_data.get("dob", ""),
-                "Provider": patient_data.get("provider", ""),
-                "Insurance": patient_data.get("insurance", ""),
-            }
-        )
-
-        # Process CPT entries if they exist
-        entries = patient_data.get("entries", [])
-        for i, entry in enumerate(entries, 1):
-            if i > 5:  # Maximum 5 CPT entries
-                break
-            cpt_code = entry.get("cpt", "")
-            mod_units = entry.get("mod_units", "")
-            formatted_row[f"CPT{i}"] = cpt_code
-            formatted_row[f"Mod/Units{i}"] = mod_units
-
-        return formatted_row

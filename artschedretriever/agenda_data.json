@@ -1,110 +1,45 @@
 {
-    "date_of_service": "Schedule Standard view - Wednesday, November 27, 2024",
+    "date_of_service": "Schedule Standard view - Wednesday, December 04, 2024",
     "patients": [
         {
-            "name": "LANCE GONZALES\n06/08/1974\nM. (970) 515-8208",
-            "birthday": "06/08/1974",
-            "provider": "Josef Planansky"
+            "name": "ROMAN CARRANZA\n12/07/1987\nM. (970) 793-7412",
+            "birthday": "12/07/1987",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Shelby N Tabor\n08/30/1991\nM. (970) 534-5576",
-            "birthday": "08/30/1991",
-            "provider": "Josef Planansky"
+            "name": "BRYAN WESTMAN\n10/24/1977\nM. (720) 244-1719",
+            "birthday": "10/24/1977",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Pauline Montalvo\n10/13/1951\nM. (970) 888-1599",
-            "birthday": "10/13/1951",
-            "provider": "Josef Planansky"
+            "name": "BENJAMIN HORNACEK\n06/24/1993\nM. (303) 748-0776",
+            "birthday": "06/24/1993",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Magdalena Guardado Martinez\n09/25/1989\nM. (209) 720-6996",
-            "birthday": "09/25/1989",
-            "provider": "Josef Planansky"
+            "name": "JAMES \"JAKE\" DAN AUSTIN III\n04/10/2003\nM. (361) 271-6277",
+            "birthday": "04/10/2003",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Matthew Hurley\n03/11/1973\nM. (720) 353-7395",
-            "birthday": "03/11/1973",
-            "provider": "Josef Planansky"
+            "name": "ANNA CHRISTENSEN\n07/25/2004\nM. (720) 520-0470",
+            "birthday": "07/25/2004",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Amado Lee Morales\n07/06/1973\nM. (970) 599-8140",
-            "birthday": "07/06/1973",
-            "provider": "Josef Planansky"
+            "name": "MONICA KAVEN\n04/09/1986\nM. (915) 540-2762",
+            "birthday": "04/09/1986",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Thuong \"Tina\" Nguyen\n07/05/1967\nM. (303) 332-3953",
-            "birthday": "07/05/1967",
-            "provider": "Josef Planansky"
+            "name": "MACKENZIE KUEHN\n07/16/2002\nM. (203) 461-0287",
+            "birthday": "07/16/2002",
+            "provider": "Nathan Ginn"
         },
         {
-            "name": "Maria \"Eugenia\" Rubio-Bernal\n02/12/1972\nM. (970) 980-5168",
-            "birthday": "02/12/1972",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Jessica Gallegos\n11/09/1987\nM. (970) 888-2203",
-            "birthday": "11/09/1987",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Zach Swetzig\n09/24/1993\nM. (970) 324-1694",
-            "birthday": "09/24/1993",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "MELISSA MENDIBELES\n01/21/1979\nM. (970) 415-6062",
-            "birthday": "01/21/1979",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Nancy Solis\n07/18/1968\nM. (970) 396-1899",
-            "birthday": "07/18/1968",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Ashlee Yanke\n04/28/1998\nM. (303) 517-1479",
-            "birthday": "04/28/1998",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Dustin Klingenberg\n09/03/1980\nM. (970) 573-9179",
-            "birthday": "09/03/1980",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Monica Flores-Jaques\n06/25/1988\nM. (720) 495-8511",
-            "birthday": "06/25/1988",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Priscilla Hochschild\n05/20/1986\nM. (303) 435-6087",
-            "birthday": "05/20/1986",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Juan Vasquez\n08/11/1972\nM. (970) 381-6952",
-            "birthday": "08/11/1972",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Amber Pierce\n05/16/1983\nM. (970) 978-9944",
-            "birthday": "05/16/1983",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Tara Nabb\n04/02/1988\nM. (970) 415-0140",
-            "birthday": "04/02/1988",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Juanita Rodriguez\n08/22/1976\nM. (303) 917-2378",
-            "birthday": "08/22/1976",
-            "provider": "Josef Planansky"
-        },
-        {
-            "name": "Stephanie Jackson\n03/02/1990\nM. (970) 451-2551",
-            "birthday": "03/02/1990",
-            "provider": "Josef Planansky"
+            "name": "NATHANIEL ROSEN\n05/15/2002\nM. (515) 414-1383",
+            "birthday": "05/15/2002",
+            "provider": "Nathan Ginn"
         }
     ]
 }

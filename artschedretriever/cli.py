@@ -5,34 +5,63 @@ import sys
 import asyncio
 import argparse
 import logging
+import json
 from config import Config
 from scheduler import ScheduleRetriever
 from sheets_integration import SheetsManager
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QDialog
 from gui import SheetManagementGUI
+from loc_date_gui import LocationDateDialog  # Import the LocationDateDialog
 
 FOLDER_ID = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
-LOCATION = "Greeley"
 CREDENTIALS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'service_account.json')
 
 async def run_automation():
     """Run the automated web scraping and sheet creation process"""
     try:
+        # Show location/date selection dialog
+        dialog = LocationDateDialog()
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            print("Operation cancelled by user")
+            return None
+            
+        params = dialog.get_selection()  # Get selected parameters from the dialog
         config = Config()
         scheduler = ScheduleRetriever(config)
         sheets_manager = SheetsManager(CREDENTIALS_PATH)
-
-        await scheduler.navigate_to_agenda()
         
+        await scheduler.init_browser()  # Initialize browser once
+        
+        # Get data for selected date
+        data = await scheduler.login(
+            location=params.get('locations', ['ART at UNC'])[0],
+            target_date=params.get('start_date')
+        )
+        
+        if not data:
+            print("No schedule was extracted")
+            return None
+
+        # Write data to temporary JSON file
+        json_path = os.path.join(os.path.dirname(__file__), 'agenda_data.json')
+        with open(json_path, "w") as f:
+            json.dump(data, f, indent=4)
+        
+        # Get location from params for sheet creation
+        location = params.get('locations', ['UNC'])[0].split(' - ')[-1]
+        
+        # Create sheet
         spreadsheet_id = sheets_manager.create_and_populate_sheet(
-            LOCATION,
-            os.path.join(os.path.dirname(__file__), 'agenda_data.json'),
+            location,
+            json_path,
             FOLDER_ID
         )
         
+        await scheduler.close()  # Close browser when done
+        
         if spreadsheet_id:
             print(f"Successfully created sheet with ID: {spreadsheet_id}")
-            return spreadsheet_id
+            return [spreadsheet_id]
         else:
             print("Failed to create sheet")
             return None
@@ -51,19 +80,15 @@ def run_gui():
 async def main():
     logging.basicConfig(level=logging.INFO)
     
-    parser = argparse.ArgumentParser(description='ART Schedule Management Tool')
-    parser.add_argument('--mode', choices=['auto', 'gui'], default='auto',
-                       help='Run in automation mode or launch GUI (default: auto)')
+    app = QApplication(sys.argv)
+    spreadsheet_ids = await run_automation()
     
-    args = parser.parse_args()
-    
-    if args.mode == 'auto':
-        spreadsheet_id = await run_automation()
-        # Optionally launch GUI after automation
-        if spreadsheet_id and input("Would you like to edit the sheet now? (y/n): ").lower() == 'y':
+    if spreadsheet_ids:
+        print(f"\nCreated {len(spreadsheet_ids)} sheets successfully")
+        if input("Would you like to edit the sheets now? (y/n): ").lower() == 'y':
             run_gui()
     else:
-        run_gui()
+        print("No sheets were created")
 
 if __name__ == "__main__":
     asyncio.run(main())
