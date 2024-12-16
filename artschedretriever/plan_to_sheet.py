@@ -115,7 +115,7 @@ class SheetsManager:
         return name_string.split("\n")[0].strip()
 
     def process_extracted_data(self, json_path):
-        """Process data from the saved JSON file"""
+        """Process data from V2 JSON format including CPT codes and encounter data"""
         try:
             with open(json_path, 'r') as file:
                 data = json.load(file)
@@ -124,16 +124,28 @@ class SheetsManager:
             date_str = data['date_of_service'].split(' - ')[1]
             formatted_date = datetime.strptime(date_str, '%A, %B %d, %Y').strftime('%m/%d/%y')
             
-            # Process patients
+            # Process patients with enhanced data
             processed_patients = []
             for patient in data.get('patients', []):
                 patient_row = [
-                    patient.get('name', '').split('\n')[0],  # Get first line of name
+                    patient.get('name', ''),
                     patient.get('birthday', ''),
-                    '',  # Insurance placeholder
-                    patient.get('provider', ''),
-                    *[''] * 10  # Empty placeholders for CPT and Mod/Units columns
+                    patient.get('insurance', ''),
+                    patient.get('provider', '')
                 ]
+                
+                # Add CPT codes and units from automated coding
+                codes = patient.get('codes', [])
+                for i in range(5):  # Maximum 5 CPT entries
+                    if i < len(codes):
+                        code = codes[i]
+                        patient_row.extend([
+                            code.get('code', ''),
+                            str(code.get('units', '')) if 'units' in code else code.get('modifier', '')
+                        ])
+                    else:
+                        patient_row.extend(['', ''])  # Empty CPT and Mod/Units
+                        
                 processed_patients.append(patient_row)
 
             return formatted_date, processed_patients
@@ -142,15 +154,15 @@ class SheetsManager:
             return None, None
 
     def create_and_populate_sheet(self, location, json_path, folder_id):
-        """Create and populate sheet with extracted data using standardized format"""
+        """Create and populate sheet with extracted data using V2 format"""
         try:
             # Load JSON data
             with open(json_path, 'r') as f:
                 data = json.load(f)
 
-            # Get date from service date
-            date_str = data['date_of_service'].split(' - ')[1]
-            service_date = datetime.strptime(date_str, '%A, %B %d, %Y').strftime('%m/%d/%y')
+            # Get date from service date - handle the new date format
+            date_str = data['date_of_service']  # "Wed, Dec 25, 2024"
+            service_date = datetime.strptime(date_str, '%a, %b %d, %Y').strftime('%m/%d/%y')
             
             # Create sheet
             sheet_title = f"ART-{location} {service_date}"
@@ -163,35 +175,49 @@ class SheetsManager:
                 logging.error("Failed to move sheet to folder")
                 return None
 
+            # Add debug logging
+            logging.info(f"Processing patients data: {len(data['patients'])} patients found")
+
             # Prepare data
             values = [SHEET_COLUMNS]  # Headers
-            for patient in data['patients']:
+            for patient in data.get('patients', []):
+                # Initialize row with basic patient data
                 row = [
-                    patient['name'].split('\n')[0],  # Name (first line only)
-                    patient['birthday'],              # DOB
-                    '',                              # Insurance (empty initially)
-                    patient['provider'],             # Provider
-                    *[''] * 10                       # Empty CPT and Mod/Units columns
+                    patient.get('name', ''),
+                    patient.get('birthday', ''),
+                    patient.get('insurance', ''),
+                    patient.get('provider', '')
                 ]
+                
+                # Add CPT codes and units
+                codes = patient.get('codes', [])
+                for i in range(5):  # Maximum 5 CPT entries
+                    if i < len(codes):
+                        code = codes[i]
+                        row.append(code.get('code', ''))
+                        row.append(str(code.get('units', '')) if 'units' in code else code.get('modifier', ''))
+                    else:
+                        row.extend(['', ''])  # Empty CPT and Mod/Units placeholders
+                
                 values.append(row)
 
-            # Update sheet
-            try:
-                self.service.spreadsheets().values().update(
-                    spreadsheetId=spreadsheet_id,
-                    range='A1',
-                    valueInputOption='RAW',
-                    body={'values': values}
-                ).execute()
-                logging.info("Sheet populated with initial data")
-                return spreadsheet_id
-                
-            except Exception as e:
-                logging.error(f"Error updating sheet values: {str(e)}")
-                return None
+            # Add debug logging
+            logging.info(f"Prepared {len(values)} rows (including header)")
 
+            # Update sheet
+            self.service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range='A1',
+                valueInputOption='RAW',
+                body={'values': values}
+            ).execute()
+            
+            logging.info("Sheet populated with initial data")
+            return spreadsheet_id
+                
         except Exception as e:
             logging.error(f"Error in create_and_populate_sheet: {str(e)}")
+            logging.exception("Full traceback:")  # This will log the full traceback
             return None
 
     def extract_sheet_data(self, spreadsheet_id):
@@ -258,25 +284,21 @@ class SheetsManager:
             return None
 
     def format_patient_data(self, patient_data):
-        """Format patient data according to standardized column structure"""
+        """Format patient data with CPT codes for sheet update"""
         formatted_row = {col: "" for col in SHEET_COLUMNS}
-        formatted_row.update(
-            {
-                "Name": patient_data.get("name", ""),
-                "DOB": patient_data.get("dob", ""),
-                "Provider": patient_data.get("provider", ""),
-                "Insurance": patient_data.get("insurance", ""),
-            }
-        )
+        formatted_row.update({
+            "Name": patient_data.get("name", ""),
+            "DOB": patient_data.get("dob", ""),
+            "Provider": patient_data.get("provider", ""),
+            "Insurance": patient_data.get("insurance", "")
+        })
 
-        # Process CPT entries if they exist
-        entries = patient_data.get("entries", [])
-        for i, entry in enumerate(entries, 1):
+        # Handle CPT codes from automated coding
+        codes = patient_data.get("codes", [])
+        for i, code in enumerate(codes, 1):
             if i > 5:  # Maximum 5 CPT entries
                 break
-            cpt_code = entry.get("cpt", "")
-            mod_units = entry.get("mod_units", "")
-            formatted_row[f"CPT{i}"] = cpt_code
-            formatted_row[f"Mod/Units{i}"] = mod_units
+            formatted_row[f"CPT{i}"] = code.get("code", "")
+            formatted_row[f"Mod/Units{i}"] = str(code.get("units", "")) if "units" in code else code.get("modifier", "")
 
         return formatted_row

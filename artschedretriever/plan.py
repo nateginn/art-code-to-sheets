@@ -9,6 +9,10 @@ from PyQt6.QtWidgets import QApplication
 from loc_date_gui import LocationDateDialog
 from config import Config
 from planex import PlanExtractor
+from plan_to_sheet import SheetsManager
+
+FOLDER_ID = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
+CREDENTIALS_PATH = Path(__file__).parent.parent / 'service_account.json'
 
 # Set up logging
 logging.basicConfig(
@@ -99,15 +103,26 @@ async def extract_agenda_data():
                     logging.error(f"No data extracted for {location}")
                     continue
 
-                # Save to JSON
+                # Save to JSON and create sheet
                 json_filename = format_json_filename(location_short, data['date_of_service'])
                 output_path = Path(__file__).parent / 'temp_json' / json_filename
                 output_path.parent.mkdir(exist_ok=True)
                 
                 with open(output_path, 'w') as f:
                     json.dump(data, f, indent=4)
-                    
-                logging.info(f"Data saved to {output_path}")
+                
+                sheets_manager = SheetsManager(CREDENTIALS_PATH)
+                spreadsheet_id = sheets_manager.create_and_populate_sheet(
+                    location_short, 
+                    str(output_path),
+                    FOLDER_ID
+                )
+                
+                if spreadsheet_id:
+                    logging.info(f"Data saved and sheet created with ID: {spreadsheet_id}")
+                else:
+                    logging.error("Failed to create Google Sheet")
+                    logging.info(f"Data saved to {output_path}")
 
         finally:
             await extractor.close()
