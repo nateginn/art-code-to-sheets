@@ -3,67 +3,107 @@
 import os
 import sys
 import asyncio
-import argparse
 import logging
 import json
+from datetime import datetime
 from config import Config
 from scheduler import ScheduleRetriever
 from sheets_integration import SheetsManager
 from PyQt6.QtWidgets import QApplication, QDialog
 from gui import SheetManagementGUI
-from loc_date_gui import LocationDateDialog  # Import the LocationDateDialog
+from loc_date_gui import LocationDateDialog
+
+LOCATION_MAPPING = {
+    "Accelerated Rehab Therapy - GREELEY": "GREELEY",
+    "ART at UNC": "UNC",
+    "ART FOCO": "FOCO"
+}
 
 FOLDER_ID = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
 CREDENTIALS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'service_account.json')
+TEMP_JSON_DIR = os.path.join(os.path.dirname(__file__), 'temp_json')
+os.makedirs(TEMP_JSON_DIR, exist_ok=True)
+
+async def create_sheets_for_location(sheets_manager, location, schedules):
+    spreadsheet_ids = []
+    location_name = LOCATION_MAPPING.get(location, location.split(' - ')[-1])
+    print(f"\nProcessing location: {location_name}")
+    
+    for schedule_data in schedules:
+        try:
+            # Extract date from schedule data
+            date_str = schedule_data['date_of_service'].split(' - ')[1]
+            date_obj = datetime.strptime(date_str, '%A, %B %d, %Y')
+            json_path = os.path.join(TEMP_JSON_DIR, f"agenda_data_{location_name}_{date_obj.strftime('%Y%m%d')}.json")
+            
+            # Create JSON file for sheet creation
+            print(f"Creating JSON file for sheet: {json_path}")
+            with open(json_path, "w") as f:
+                json.dump(schedule_data, f, indent=4)
+            
+            # Create sheet
+            print(f"Creating Google Sheet for {date_obj.strftime('%Y-%m-%d')}")
+            spreadsheet_id = sheets_manager.create_and_populate_sheet(
+                location_name,
+                json_path,
+                FOLDER_ID
+            )
+            
+            # Handle sheet creation result
+            if spreadsheet_id:
+                print(f"Sheet created successfully with ID: {spreadsheet_id}")
+                spreadsheet_ids.append(spreadsheet_id)
+                
+                # Clean up JSON file
+                try:
+                    os.remove(json_path)
+                    print(f"Successfully deleted JSON file: {json_path}")
+                except Exception as e:
+                    print(f"Error deleting JSON file {json_path}: {str(e)}")
+            else:
+                print(f"Failed to create sheet for {json_path}")
+                
+        except Exception as e:
+            print(f"Error processing schedule data: {str(e)}")
+            continue
+            
+    return spreadsheet_ids
 
 async def run_automation():
-    """Run the automated web scraping and sheet creation process"""
     try:
-        # Show location/date selection dialog
         dialog = LocationDateDialog()
         if dialog.exec() != QDialog.DialogCode.Accepted:
-            print("Operation cancelled by user")
             return None
             
-        params = dialog.get_selection()  # Get selected parameters from the dialog
+        params = dialog.get_selection()
         config = Config()
         scheduler = ScheduleRetriever(config)
         sheets_manager = SheetsManager(CREDENTIALS_PATH)
         
-        await scheduler.init_browser()  # Initialize browser once
+        await scheduler.init_browser()
         
-        # Get data for selected date
-        data = await scheduler.login(
-            location=params.get('locations', ['ART at UNC'])[0],
-            target_date=params.get('start_date')
+        all_schedules = await scheduler.process_all_locations(
+            locations=params.get('locations', []),
+            start_date=params.get('start_date'),
+            end_date=params.get('end_date')
         )
         
-        if not data:
-            print("No schedule was extracted")
+        if not all_schedules:
+            print("No schedules were extracted")
             return None
 
-        # Write data to temporary JSON file
-        json_path = os.path.join(os.path.dirname(__file__), 'agenda_data.json')
-        with open(json_path, "w") as f:
-            json.dump(data, f, indent=4)
+        all_spreadsheet_ids = []
+        for location, schedules in all_schedules.items():
+            location_ids = await create_sheets_for_location(sheets_manager, location, schedules)
+            all_spreadsheet_ids.extend(location_ids)
         
-        # Get location from params for sheet creation
-        location = params.get('locations', ['UNC'])[0].split(' - ')[-1]
+        await scheduler.close()
         
-        # Create sheet
-        spreadsheet_id = sheets_manager.create_and_populate_sheet(
-            location,
-            json_path,
-            FOLDER_ID
-        )
-        
-        await scheduler.close()  # Close browser when done
-        
-        if spreadsheet_id:
-            print(f"Successfully created sheet with ID: {spreadsheet_id}")
-            return [spreadsheet_id]
+        if all_spreadsheet_ids:
+            print(f"\nSuccessfully created {len(all_spreadsheet_ids)} sheets")
+            return all_spreadsheet_ids
         else:
-            print("Failed to create sheet")
+            print("Failed to create sheets")
             return None
 
     except Exception as e:
@@ -71,7 +111,6 @@ async def run_automation():
         raise
 
 def run_gui():
-    """Launch the GUI application"""
     app = QApplication(sys.argv)
     window = SheetManagementGUI()
     window.show()
