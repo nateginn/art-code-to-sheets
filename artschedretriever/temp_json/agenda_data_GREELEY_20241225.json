@@ -6,11 +6,11 @@
             "birthday": "02/26/1961",
             "provider": "Nathan Ginn",
             "encounter_url": "#/PF/charts/patients/ba254f68-dd6a-4215-ab07-9baa7513e6d4/encounter/b7d90100-c52f-42e7-870d-3c5cbe8c5cec",
-            "status": "Pending arrival",
-            "insurance": "BCBS",
+            "status": "In lobby",
+            "insurance": "Work Comp",
             "plan": {
                 "deep_tissue": [
-                    "A session of 55 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                    "Deep tissue and/or Neuromuscular re-education was provided for 25 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes."
                 ],
                 "manipulation": [
                     "Manipulation to the affected spinal segments: C, T, L/S"
@@ -25,13 +25,13 @@
             "codes": [
                 {
                     "code": "97530",
-                    "units": 4,
-                    "description": "Deep tissue Therapy (97530 - 55 minutes)"
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
                 },
                 {
-                    "code": "97140",
+                    "code": "98926",
                     "units": 1,
-                    "description": "Manipulation (97140 - 4 regions)"
+                    "description": "Manipulation (4 regions)"
                 },
                 {
                     "code": "97110",
@@ -56,7 +56,7 @@
             "provider": "Nathan Ginn",
             "encounter_url": "#/PF/charts/patients/88481352-617b-4d28-bd49-ef3fc08c0654/encounter/8612a24c-4fca-41fe-a253-797c4338b7b8",
             "status": "Seen",
-            "insurance": "Medicaid",
+            "insurance": "Medicaid Bill to Patient",
             "plan": {
                 "deep_tissue": [
                     "A session of 55 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
@@ -69,7 +69,7 @@
                 {
                     "code": "97530",
                     "units": 4,
-                    "description": "Deep tissue Therapy (97530 - 55 minutes)"
+                    "description": "Deep tissue Therapy (55 minutes)"
                 }
             ]
         }

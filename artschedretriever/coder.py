@@ -30,24 +30,26 @@ class CPTCoder:
         os.makedirs(self.output_dir, exist_ok=True)
         self.output_file = os.path.join(self.output_dir, 'coding_test.json')
 
-    def validate_insurance(self, insurance: str) -> str:
+    def validate_insurance(self, insurance_bill: str) -> str:
         """
         Validate and normalize the insurance field to handle case mismatching.
         Converts known values to standardized uppercase representations.
         """
-        if not insurance.strip():
+        if not insurance_bill.strip():
             return "UNKNOWN"
         
-        insurance = insurance.strip().upper()
+        insurance_bill = insurance_bill.strip().upper()
         insurance_map = {
             "AUTO": "AUTO",
+            "Work Comp": "AUTO",
+            "Workers Comp": "AUTO",
             "SELF PAY": "SELF PAY",
             "MEDICAID": "MEDICAID",
             "MEDICARE": "MEDICARE"
         }
         
         # Map standardized insurance values
-        return insurance_map.get(insurance, insurance)
+        return insurance_map.get(insurance_bill, insurance_bill)
 
 
     def count_regions(self, text: str) -> int:
@@ -84,21 +86,28 @@ class CPTCoder:
         else:
             return 5
 
-    def get_manipulation_code(self, insurance: str, regions: int) -> str:
+    def get_manipulation_code(self, insurance_bill: str, regions: int) -> str:
+        """
+    Determine the manipulation CPT code based on insurance and regions.
+    """
         if not regions:
             return None
             
-        if insurance == "MEDICAID":
+        if insurance_bill == "MEDICAID":
             return "97140"
-        elif insurance.startswith("AUTO") or insurance == "SELF PAY":
+        elif insurance_bill in ["AUTO", "SELF PAY"]:
             return "98941" if regions > 2 else "98940"
-        else:
+        else:  # Default behavior for other insurances
             return "98926" if regions > 2 else "98925"
 
-    def get_neuromuscular_code(self, insurance: str) -> str:
-        if insurance.startswith("AUTO") or insurance == "SELF PAY":
-            return "97112"
-        return "97530"
+    def get_neuromuscular_code(self, insurance_bill: str) -> str:
+        """
+        Return the neuromuscular CPT code based on insurance.
+        """
+        if insurance_bill in ["AUTO", "SELF PAY"]:
+            return "97112"  # Auto and Work Comp use 97112
+        else:
+            return "97530"  # Default code
 
     def handle_acupuncture(self, plan_text: str) -> List[Dict]:
         if not re.search(self.cpt_patterns['acupuncture']['main'], plan_text, re.IGNORECASE):
@@ -116,11 +125,14 @@ class CPTCoder:
             })
         return codes
 
-    def extract_codes(self, insurance: str, plan_text: str) -> List[Dict]:
+    def extract_codes(self, insurance_bill: str, plan_text: str) -> List[Dict]:
+        """
+        Extract CPT codes based on the insurance_bill and the plan text.
+        """
         codes = []
-        print(f"Processing insurance: {insurance}")
-        insurance = self.validate_insurance(insurance)
-        print(f"Validated insurance: {insurance}")
+        print(f"Processing insurance_bill: {insurance_bill}")
+        insurance_bill = self.validate_insurance(insurance_bill)
+        print(f"Validated insurance_bill: {insurance_bill}")
         
         # Extract E/M codes
         for code, pattern in self.cpt_patterns['exam'].items():
@@ -132,15 +144,15 @@ class CPTCoder:
                     'description': 'E/M'
                 })
 
-        # Extract neuromuscular/deep tissue (97530)
-        match = re.search(self.cpt_patterns['neuromuscular'], plan_text, re.IGNORECASE)
-        if match:
-            if match.group(1):  # Procedure first
-                keyword = match.group(1)  # "deep tissue" or "neuromuscular"
-                minutes = int(match.group(2))  # Time
-            elif match.group(3):  # Time first
-                minutes = int(match.group(3))  # Time
-                keyword = match.group(4)  # "deep tissue" or "neuromuscular"
+        # Handle neuromuscular/deep tissue (97530 or 97112)
+        time_match = re.search(self.cpt_patterns['neuromuscular'], plan_text, re.IGNORECASE)
+        if time_match:
+            if time_match.group(1):  # Procedure first
+                keyword = time_match.group(1)  # "deep tissue" or "neuromuscular"
+                minutes = int(time_match.group(2))  # Time
+            elif time_match.group(3):  # Time first
+                minutes = int(time_match.group(3))  # Time
+                keyword = time_match.group(4)  # "deep tissue" or "neuromuscular"
             else:
                 print("No valid groups matched for deep tissue/neuromuscular")
                 return codes
@@ -150,26 +162,22 @@ class CPTCoder:
             print(f"Calculated time units for {minutes} minutes: {units}")
             if units > 0:
                 codes.append({
-                    'code': "97530",
+                    'code': self.get_neuromuscular_code(insurance_bill),  # Updated
                     'units': units,
-                    'description': f'{keyword.capitalize()} Therapy (97530 - {minutes} minutes)'
+                    'description': f'{keyword.capitalize()} Therapy ({minutes} minutes)'
                 })
-        else:
-            print(f"No match for neuromuscular/deep tissue in plan_text: {plan_text}")
 
-        # Handle manipulation (97140)
+        # Handle manipulation (97140 or related)
         manip_match = re.search(self.cpt_patterns['manipulation']['regions'], plan_text, re.IGNORECASE)
         if manip_match:
             regions = self.count_regions(manip_match.group(1))
             print(f"Matched manipulation: {regions} regions")
-            manip_code = "97140"
+            manip_code = self.get_manipulation_code(insurance_bill, regions)  # Updated
             codes.append({
                 'code': manip_code,
                 'units': 1,
-                'description': f'Manipulation (97140 - {regions} regions)'
+                'description': f'Manipulation ({regions} regions)'
             })
-        else:
-            print(f"No match for manipulation in plan_text: {plan_text}")
 
         # Handle therapeutic exercise
         exercise_match = re.search(self.cpt_patterns['therapeutic_exercise'], plan_text, re.IGNORECASE)
@@ -184,19 +192,16 @@ class CPTCoder:
                     'units': units,
                     'description': f'Therapeutic Exercise ({minutes} minutes)'
                 })
-        else:
-            print(f"No match for therapeutic exercise in plan_text: {plan_text}")
 
         # Handle acupuncture
         acupuncture_codes = self.handle_acupuncture(plan_text)
         if acupuncture_codes:
             print(f"Matched acupuncture codes: {acupuncture_codes}")
             codes.extend(acupuncture_codes)
-        else:
-            print(f"No match for acupuncture in plan_text: {plan_text}")
 
         print(f"Final extracted codes: {codes}")
         return codes
+
 
 
     # Pipes the plan text into distinct treatment phrases

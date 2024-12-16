@@ -113,11 +113,13 @@ class PlanExtractor:
 
             # Get insurance from pin note
             pin_note = await self.page.wait_for_selector("[data-element='patient-pinned-note-text'] .pf-rich-text p")
-            insurance = await pin_note.text_content() if pin_note else ""
-            print(f"Found insurance: {insurance}")
+            insurance_line = await pin_note.text_content() if pin_note else ""
+            print(f"Found insurance: {insurance_line}")
+
+            # Extract the first word of the insurance line
+            insurance_first_word = insurance_line.split()[0] if insurance_line else "UNKNOWN"
 
             # Wait for and get plan text
-            # Update the plan text selector
             plan_element = await self.page.wait_for_selector("[data-element='plan-note'] .editor[data-element='rich-text-editor']")
             plan_text = await plan_element.inner_html() if plan_element else ""
             print(f"\nRaw plan text found: {plan_text[:100]}...")  # Show first 100 chars
@@ -130,7 +132,8 @@ class PlanExtractor:
             print(f"Cleaned plan text: {plan_text}")
 
             result = {
-                "insurance": insurance.strip(),
+                "insurance": insurance_line.strip(),            # Full line for spreadsheet
+                "insurance_bill": insurance_first_word.upper(),  # First word for coding
                 "plan_text": plan_text
             }
             print("\nReturning data:", result)
@@ -140,6 +143,7 @@ class PlanExtractor:
             logging.error(f"Error extracting encounter data: {str(e)}")
             print(f"Error in extraction: {str(e)}")
             return None
+
 
     async def close(self):
         """Clean up browser resources"""
