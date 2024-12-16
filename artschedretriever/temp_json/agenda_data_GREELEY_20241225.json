@@ -1,0 +1,77 @@
+{
+    "date_of_service": "Wed, Dec 25, 2024",
+    "patients": [
+        {
+            "name": "NATHAN GINN",
+            "birthday": "02/26/1961",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/ba254f68-dd6a-4215-ab07-9baa7513e6d4/encounter/b7d90100-c52f-42e7-870d-3c5cbe8c5cec",
+            "status": "Pending arrival",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 55 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S"
+                ],
+                "therapeutic": [
+                    "Therapeutic exercises taught and performed (30 minutes) today include: stretches"
+                ],
+                "acupuncture": [
+                    "Acupuncture administered to the cervical and thoracic region."
+                ]
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 4,
+                    "description": "Deep tissue Therapy (97530 - 55 minutes)"
+                },
+                {
+                    "code": "97140",
+                    "units": 1,
+                    "description": "Manipulation (97140 - 4 regions)"
+                },
+                {
+                    "code": "97110",
+                    "units": 2,
+                    "description": "Therapeutic Exercise (30 minutes)"
+                },
+                {
+                    "code": "97810",
+                    "units": 1,
+                    "description": "Acupuncture Initial"
+                },
+                {
+                    "code": "97811",
+                    "units": 1,
+                    "description": "Acupuncture Additional (1 regions)"
+                }
+            ]
+        },
+        {
+            "name": "GREG DENZEL",
+            "birthday": "01/01/2015",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/88481352-617b-4d28-bd49-ef3fc08c0654/encounter/8612a24c-4fca-41fe-a253-797c4338b7b8",
+            "status": "Seen",
+            "insurance": "Medicaid",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 55 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 4,
+                    "description": "Deep tissue Therapy (97530 - 55 minutes)"
+                }
+            ]
+        }
+    ]
+}

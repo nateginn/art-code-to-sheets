@@ -1,76 +1,122 @@
 # artschedretriever/plan.py
 
 import asyncio
+import json
 import logging
-from planex import PlanExtractor
-from loc_date_gui import LocDateGUI
+from datetime import datetime
+from pathlib import Path
+from PyQt6.QtWidgets import QApplication
+from loc_date_gui import LocationDateDialog
 from config import Config
+from planex import PlanExtractor
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def format_json_filename(location, date):
-    return f"{location}.{date}.json"
+    """Create standardized JSON filename from location and date"""
+    date_str = datetime.strptime(date, "%a, %b %d, %Y").strftime("%Y%m%d")
+    return f"agenda_data_{location}_{date_str}.json"
 
-async def extract_and_process_data():
+async def extract_agenda_data():
     try:
+        # Initialize Qt Application
+        app = QApplication([])
+        
         # Open Location and Date GUI
-        gui = LocDateGUI()
-        location, date = gui.get_location_and_date()
-
-        if not location or not date:
-            print("Location or date not selected.")
+        dialog = LocationDateDialog()
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            logging.info("User cancelled operation")
             return
 
-        # Initialize configuration and PlanExtractor
+        # Get selected params and log them
+        params = dialog.get_selection()
+        logging.info(f"Selected date: {params.get('start_date')}")
+        logging.info(f"Selected locations: {params.get('locations')}")
+        
+        if not params.get('locations') or not params.get('start_date'):
+            logging.error("Required parameters not selected")
+            return
+
+        # Initialize config and extractor
         config = Config()
-        plan_extractor = PlanExtractor(config)
+        extractor = PlanExtractor(config)
 
-        # Launch the browser
-        await plan_extractor.init_browser()
+        # Launch browser
+        await extractor.init_browser()
 
-        # Log in to the system and handle 2FA
-        logged_in = await plan_extractor.login()
-        if not logged_in:
-            print("Login failed.")
-            return
+        try:
+            # Login
+            if not await extractor.login():
+                logging.error("Login failed")
+                return
 
-        # Navigate to agenda URL
-        agenda_url = plan_extractor.get_agenda_url(location, date)
-        await plan_extractor.goto(agenda_url)
+            # Process each selected location
+            for location in params['locations']:
+                logging.info(f"Processing location: {location}")
+                
+                # Navigate to agenda URL
+                agenda_url = extractor.get_agenda_url(location)
+                await extractor.page.goto(agenda_url)
+                await asyncio.sleep(1)  # Wait for page load
+                
+                # Click date picker and wait
+                await extractor.page.click("#date-picker-button")
+                await asyncio.sleep(1)
+                
+                # Format target date for picker
+                target_date = params['start_date']
+                logging.info(f"Setting date to: {target_date}")
+                
+                # Set month/year
+                target_month = target_date.strftime("%B %Y")
+                current_month = await extractor.page.locator(".datepicker-days table thead tr th.switch").text_content()
 
-        # Extract patient data from the agenda page
-        patient_data = await plan_extractor.extract_agenda_data()
+                while current_month != target_month:
+                    logging.info(f"Current month: {current_month}, Target: {target_month}")
+                    await extractor.page.click(".datepicker-days th.prev")
+                    await asyncio.sleep(3)
+                    current_month = await extractor.page.locator(".datepicker-days table thead tr th.switch").text_content()
 
-        # Format and save patient data to JSON
-        json_filename = format_json_filename(location, date)
-        plan_extractor.save_json(patient_data, json_filename)
-        print(f"Patient data saved to {json_filename}")
+                # Select day
+                target_day = str(target_date.day)
+                await extractor.page.click(f"td.day:not(.old):not(.new):text('{target_day}')")
+                await asyncio.sleep(1)
 
-        # Process each patient: navigate to their encounter and extract plan
-        for patient in patient_data:
-            encounter_url = patient.get("view_encounter_url")
-            if not encounter_url:
-                continue
+                # Switch location if needed
+                location_short = location.split(' - ')[-1]
+                await extractor.page.click(".scheduler-toolbar__select-facilities .composable-select__choice")
+                await asyncio.sleep(1)
+                await extractor.page.click(f"li.composable-select__result-item a:text('{location}')")
+                await asyncio.sleep(1)
+                
+                # Extract data
+                data = await extractor.extract_agenda_data()
+                if not data:
+                    logging.error(f"No data extracted for {location}")
+                    continue
 
-            # Navigate to the encounter page
-            await plan_extractor.goto(encounter_url)
+                # Save to JSON
+                json_filename = format_json_filename(location_short, data['date_of_service'])
+                output_path = Path(__file__).parent / 'temp_json' / json_filename
+                output_path.parent.mkdir(exist_ok=True)
+                
+                with open(output_path, 'w') as f:
+                    json.dump(data, f, indent=4)
+                    
+                logging.info(f"Data saved to {output_path}")
 
-            # Extract plan data
-            plan_data = await plan_extractor.extract_plan_data()
-            patient["plan"] = plan_data
-
-            # Run coder script on the extracted plan data
-            cpt_codes = plan_extractor.run_coder(plan_data)
-            patient["cpt_codes"] = cpt_codes
-
-        # Save updated patient data with plan and CPT codes
-        plan_extractor.save_json(patient_data, json_filename)
-        print(f"Updated patient data saved to {json_filename}")
+        finally:
+            await extractor.close()
 
     except Exception as e:
-        logging.error(f"Error during plan extraction and processing: {str(e)}")
-    finally:
-        await plan_extractor.close()
+        logging.error(f"Error during extraction: {str(e)}")
+        raise
 
 if __name__ == "__main__":
-    asyncio.run(extract_and_process_data())
+    asyncio.run(extract_agenda_data())
 
     print("Plan extraction and processing completed.")

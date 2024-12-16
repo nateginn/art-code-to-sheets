@@ -1,81 +1,151 @@
 import os
 import json
+import logging
 import asyncio
+import re
 from playwright.async_api import async_playwright
+from coder import PlanProcessor
 
 class PlanExtractor:
     def __init__(self, config):
         self.config = config
         self.browser = None
         self.page = None
+        self.playwright = None
 
     async def init_browser(self):
-        playwright = await async_playwright().start()
-        self.browser = await playwright.chromium.launch(headless=False)
+        """Initialize browser instance"""
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.launch(headless=False)
         self.page = await self.browser.new_page()
 
     async def login(self):
-        await self.page.goto(self.config['login_url'])
-        await self.page.fill('#username', self.config['username'])
-        await self.page.fill('#password', self.config['password'])
-        await self.page.click('#login-button')
+        """Handle login and 2FA process"""
+        try:
+            await self.page.goto("https://static.practicefusion.com")
+            await self.page.wait_for_selector("input[type='email']", timeout=60000)
+            await self.page.fill("input[type='email']", self.config.username)
+            await self.page.fill("input[type='password']", self.config.password)
+            await self.page.click("button[type='submit']")
+            
+            await asyncio.sleep(20)  # 2FA wait
+            
+            return True
+            
+        except Exception as e:
+            logging.error(f"Login failed: {str(e)}")
+            return False
 
-        # Wait for 2FA input if needed
-        await self.page.wait_for_selector('#2fa-input', timeout=10000)
-        print("Enter your 2FA code:")
-        two_fa_code = input()
-        await self.page.fill('#2fa-input', two_fa_code)
-        await self.page.click('#2fa-submit')
-
-        # Wait for successful navigation
-        return await self.page.wait_for_selector('#agenda', timeout=15000)
-
-    async def goto(self, url):
-        await self.page.goto(url)
-
-    def get_agenda_url(self, location, date):
-        return f"{self.config['base_url']}/schedule/{location}/{date}/agenda"
+    def get_agenda_url(self, location):
+        """Generate agenda URL"""
+        return "https://static.practicefusion.com/apps/ehr/index.html#/PF/schedule/scheduler/agenda"
 
     async def extract_agenda_data(self):
-        await self.page.wait_for_selector('#agenda-items')
-        patients = []
+        """Extract all patient data from agenda page and process encounters"""
+        try:
+            # Get date of service
+            date_element = await self.page.wait_for_selector(".readable-date-container .header4semibold")
+            date_of_service = await date_element.text_content()
 
-        agenda_items = await self.page.query_selector_all('.slc-row.appointment-container')
-        for item in agenda_items:
-            name = await item.query_selector_eval('.patient-column .lead a', 'el => el.textContent.trim()')
-            dob = await item.query_selector_eval('.birthday .text-color-default', 'el => el.textContent.trim()')
-            provider = await item.query_selector_eval('.provider-column .text-color-default', 'el => el.textContent.trim()')
-            status = await item.query_selector_eval('.status-column .display-name', 'el => el.textContent.trim()')
-            encounter_url = await item.query_selector_eval('.view-encounter a', 'el => el.getAttribute("href")')
+            # Get patient rows
+            patient_rows = await self.page.query_selector_all(".slc-row.appointment-container")
+            patients = []
+            
+            # Initialize plan processor
+            processor = PlanProcessor()
 
-            patients.append({
-                "name": name,
-                "dob": dob,
-                "provider": provider,
-                "status": status,
-                "view_encounter_url": encounter_url
-            })
+            for row in patient_rows:
+                # Extract basic patient info
+                name = await row.query_selector(".patient-column .lead a")
+                birthday = await row.query_selector(".birthday .text-color-default")
+                provider = await row.query_selector(".provider-column .text-color-default")
+                status = await row.query_selector(".status-column .display-name")
+                encounter_link = await row.query_selector(".view-encounter a")
 
-        return patients
+                # Build patient data dictionary
+                patient_data = {
+                    "name": await name.text_content() if name else "",
+                    "birthday": await birthday.text_content() if birthday else "",
+                    "provider": await provider.text_content() if provider else "",
+                    "encounter_url": await encounter_link.get_attribute("href") if encounter_link else "",
+                    "status": await status.text_content() if status else ""
+                }
 
-    async def extract_plan_data(self):
-        await self.page.wait_for_selector('[data-element="plan-note"] .editor')
-        plan_content = await self.page.query_selector_eval(
-            '[data-element="plan-note"] .editor', 'el => el.innerHTML.trim()')
-        return plan_content
+                # Clean whitespace
+                patient_data = {k: v.strip() for k, v in patient_data.items()}
 
-    def run_coder(self, plan_data):
-        # Mocking coder logic
-        # Replace this with actual script call if needed
-        return {
-            "cpt_codes": ["99203", "97140"],
-            "units": [1, 2]
-        }
+                # Extract encounter data
+                if patient_data["encounter_url"]:
+                    encounter_data = await self.extract_encounter_data(patient_data["encounter_url"])
+                    if encounter_data:
+                        # Process plan and get codes
+                        plan_result = processor.process_plan(
+                            encounter_data["insurance"],
+                            encounter_data["plan_text"]
+                        )
+                        
+                        # Add to patient data
+                        patient_data.update({
+                            "insurance": encounter_data["insurance"],
+                            "plan": plan_result["procedures"],
+                            "codes": plan_result["codes"]
+                        })
 
-    def save_json(self, data, filename):
-        with open(filename, 'w') as json_file:
-            json.dump(data, json_file, indent=4)
+                patients.append(patient_data)
+
+            return {
+                "date_of_service": date_of_service.strip(),
+                "patients": patients
+            }
+
+        except Exception as e:
+            logging.error(f"Data extraction error: {str(e)}")
+            return None
+        
+    async def extract_encounter_data(self, encounter_url):
+        """Extract insurance from pin note and plan text from encounter page"""
+        try:
+            # Navigate to full URL
+            full_url = f"https://static.practicefusion.com/apps/ehr/index.html{encounter_url}"
+            print(f"\nNavigating to: {encounter_url}")
+            await self.page.goto(full_url)
+            await asyncio.sleep(2)
+
+            # Get insurance from pin note
+            pin_note = await self.page.wait_for_selector("[data-element='patient-pinned-note-text'] .pf-rich-text p")
+            insurance = await pin_note.text_content() if pin_note else ""
+            print(f"Found insurance: {insurance}")
+
+            # Wait for and get plan text
+            # Update the plan text selector
+            plan_element = await self.page.wait_for_selector("[data-element='plan-note'] .editor[data-element='rich-text-editor']")
+            plan_text = await plan_element.inner_html() if plan_element else ""
+            print(f"\nRaw plan text found: {plan_text[:100]}...")  # Show first 100 chars
+
+            # Clean plan text
+            print("\nCleaning plan text...")
+            plan_text = re.sub(r'<br\s*/?>', '\n', plan_text)
+            plan_text = re.sub(r'<[^>]+>', '', plan_text)
+            plan_text = re.sub(r'\n\s*\n', '\n', plan_text).strip()
+            print(f"Cleaned plan text: {plan_text}")
+
+            result = {
+                "insurance": insurance.strip(),
+                "plan_text": plan_text
+            }
+            print("\nReturning data:", result)
+            return result
+
+        except Exception as e:
+            logging.error(f"Error extracting encounter data: {str(e)}")
+            print(f"Error in extraction: {str(e)}")
+            return None
 
     async def close(self):
+        """Clean up browser resources"""
+        if self.page:
+            await self.page.close()
         if self.browser:
             await self.browser.close()
+        if self.playwright:
+            await self.playwright.stop()
