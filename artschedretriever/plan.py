@@ -11,7 +11,6 @@ from config import Config
 from planex import PlanExtractor
 from plan_to_sheet import SheetsManager
 
-FOLDER_ID = '1CID44P-ogKi0XPmwUppbw0Uy0YT-0Kaw'
 CREDENTIALS_PATH = Path(__file__).parent.parent / 'service_account.json'
 
 # Set up logging
@@ -31,7 +30,8 @@ async def extract_agenda_data():
         app = QApplication([])
         
         # Open Location and Date GUI
-        dialog = LocationDateDialog()
+        config = Config()
+        dialog = LocationDateDialog(config)
         if dialog.exec() != dialog.DialogCode.Accepted:
             logging.info("User cancelled operation")
             return
@@ -48,6 +48,7 @@ async def extract_agenda_data():
         # Initialize config and extractor
         config = Config()
         extractor = PlanExtractor(config)
+
 
         # Launch browser
         await extractor.init_browser()
@@ -115,7 +116,7 @@ async def extract_agenda_data():
                 spreadsheet_id = sheets_manager.create_and_populate_sheet(
                     location_short, 
                     str(output_path),
-                    FOLDER_ID
+                    params.get('folder_id')
                 )
                 
                 if spreadsheet_id:

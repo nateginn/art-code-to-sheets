@@ -1,18 +1,22 @@
 # artschedretriever/loc_date_gui.py
 
+import config
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QDateEdit, QCheckBox, QDialogButtonBox, QGroupBox
+    QDateEdit, QCheckBox, QDialogButtonBox, QGroupBox, QPushButton, QMessageBox
 )
 from PyQt6.QtCore import Qt, QDate
 from datetime import datetime
 
 class LocationDateDialog(QDialog):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
         self.selected_locations = []
         self.start_date = None
         self.end_date = None
+        self.dev_folder_id = config.dev_folder_id
+        self.prod_folder_id = config.prod_folder_id
+        self.selected_folder_id = self.dev_folder_id  # Default to dev
         self.init_ui()
 
     def init_ui(self):
@@ -55,6 +59,21 @@ class LocationDateDialog(QDialog):
         
         location_group.setLayout(location_layout)
         layout.addWidget(location_group)
+        
+        mode_group = QGroupBox("Environment Selection")
+        mode_layout = QVBoxLayout()
+        
+        self.prod_mode = QCheckBox("Production Mode")
+        self.prod_mode.stateChanged.connect(self.toggle_mode)
+        
+        self.mode_label = QLabel("Current Mode: Development")
+        self.mode_label.setStyleSheet("color: green;")
+        
+        mode_layout.addWidget(self.prod_mode)
+        mode_layout.addWidget(self.mode_label)
+        
+        mode_group.setLayout(mode_layout)
+        layout.addWidget(mode_group)
 
         # Dialog Buttons
         buttons = QDialogButtonBox(
@@ -100,9 +119,30 @@ class LocationDateDialog(QDialog):
             
         self.accept()
 
+    def toggle_mode(self, state):
+        if state:
+            reply = QMessageBox.question(
+                self,
+                'Confirm Production Mode',
+                'Are you sure you want to switch to Production mode?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.selected_folder_id = self.prod_folder_id
+                self.mode_label.setText("Current Mode: Production")
+                self.mode_label.setStyleSheet("color: red;")
+            else:
+                self.prod_mode.setChecked(False)
+        else:
+            self.selected_folder_id = self.dev_folder_id
+            self.mode_label.setText("Current Mode: Development")
+            self.mode_label.setStyleSheet("color: green;")
+            
     def get_selection(self):
         return {
             "start_date": self.start_date,
             "end_date": self.end_date,
-            "locations": self.selected_locations
+            "locations": self.selected_locations,
+            "folder_id": self.selected_folder_id
         }
