@@ -24,3 +24,7 @@ class Config:
         
         if not all([self.username, self.password]):
             raise ValueError("Missing required credentials in .env file")
+
+    def get_folder_id(self):
+        """Return the appropriate folder ID based on environment"""
+        return self.dev_folder_id  # For now, just returns dev folder ID

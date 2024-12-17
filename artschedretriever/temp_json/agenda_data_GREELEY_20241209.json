@@ -1,0 +1,543 @@
+{
+    "date_of_service": "Mon, Dec 9, 2024",
+    "patients": [
+        {
+            "name": "LUIS OCHOA",
+            "birthday": "03/24/1965",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/2a915010-eba9-475a-bf88-b85ed3332213/encounter/86c2eb2b-a878-476e-a496-59d0718b580c",
+            "status": "Seen",
+            "insurance": "AUTO:LIEN",
+            "plan": {
+                "deep_tissue": [
+                    "To improve circulation, diminish myospasms, and re-educate injured muscle and fascia 55 minutes of deep tissue and/or neuromuscular re-education was provided for improved healing outcomes."
+                ],
+                "manipulation": [],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 4,
+                    "description": "Deep tissue Therapy (55 minutes)"
+                }
+            ]
+        },
+        {
+            "name": "Jeffery Gonzales",
+            "birthday": "01/02/1990",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/1c9a25d5-d0e2-461d-90cf-cbccd66c2b5d/encounter/28f3dd1a-5fad-48e8-b3f7-7a053c775bca",
+            "status": "Seen",
+            "insurance": "Medicaid",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 30 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical, thoracic, and lumbar spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "97140",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 3, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Nicole Gonzales",
+            "birthday": "06/27/1993",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/bb09e1cb-e140-4ae9-aa24-afa6e8964729/encounter/c86fc969-1f72-4fd0-8f93-1253b769e3cf",
+            "status": "Seen",
+            "insurance": "Medicaid",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 30 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical, thoracic, and lumbar spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "97140",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 3, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Kendra Brock",
+            "birthday": "01/29/1986",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/e1d259b5-962b-4bdc-b02d-95fc9c5fb60a/encounter/68a0bbc3-f9d4-4f5c-90ba-b7925fd9d8b1",
+            "status": "Seen",
+            "insurance": "AETNA",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 30 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical and thoracic spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98925",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Mohamed Nasir Bin Zakaria",
+            "birthday": "08/08/1970",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/1f963aff-dc05-4e2c-80ad-1842f770ef0b/encounter/690eff7d-3374-4d30-8548-da68ab6a5537",
+            "status": "Seen",
+            "insurance": "AUTO:Lien",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes"
+                ],
+                "manipulation": [],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                }
+            ]
+        },
+        {
+            "name": "Nancy Solis",
+            "birthday": "07/18/1968",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/00f758a2-d3fb-4418-8cfb-73f87d649e0a/encounter/5b59ee04-afd6-4b24-97f8-5f2d645d109f",
+            "status": "Seen",
+            "insurance": "AUTO",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 30 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical, thoracic, and lumbar spine"
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98941",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 3, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Pauline Montalvo",
+            "birthday": "10/13/1951",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/c91ca719-75d9-4bce-ab7c-a52e471062ae/encounter/e01e943e-bcf7-4124-87b3-4678b847ed82",
+            "status": "Seen",
+            "insurance": "AUTO - MEDPAY",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 55 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 4,
+                    "description": "Deep tissue Therapy (55 minutes)"
+                }
+            ]
+        },
+        {
+            "name": "Martina Solis",
+            "birthday": "01/10/1970",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/385938a7-ee5d-47ff-9953-daab972a06d5/encounter/5a96e994-e4f7-4fdf-b77e-b49625d0232e",
+            "status": "Seen",
+            "insurance": "AUTO: LIEN (HSS)",
+            "plan": {
+                "deep_tissue": [
+                    "To improve circulation, diminish myospasms, and re-educate injured muscle and fascia 30minutes of deep tissue and/or neuromuscular re-education was provided for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: lumbar and lower thoracic spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98940",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "RAEDEAN JIRON",
+            "birthday": "03/10/1967",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/9b14b84c-9d4b-43e6-bc2b-20f1c1db0b9e/encounter/9170c29c-a03e-4462-876b-138d11a0bfee",
+            "status": "Seen",
+            "insurance": "AUTO: LIEN",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes,"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: T/L"
+                ],
+                "therapeutic": [
+                    "Therapeutic exercises taught and performed (15 minutes) today include: Stationary bike, straight leg raises, calf stretches, and mild knee flexion."
+                ],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98941",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 2, 'extraspinal': True} regions)"
+                },
+                {
+                    "code": "97110",
+                    "units": 1,
+                    "description": "Therapeutic Exercise (15 minutes)"
+                }
+            ]
+        },
+        {
+            "name": "Savannah Johnson",
+            "birthday": "09/15/1996",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/c88fcb62-11d3-473e-956b-864f5136975b/encounter/595d557b-6c07-46b4-a8a0-f618bee9dbfc",
+            "status": "Seen",
+            "insurance": "AUTO:",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical and thoracic spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98940",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Joel E Woody",
+            "birthday": "06/01/1970",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/0a972ca2-b33e-4c84-ab88-4fb5f97aedac/encounter/03ee6131-ec57-4ece-8640-bdc2d2546c82",
+            "status": "Seen",
+            "insurance": "MEDICAID",
+            "plan": {
+                "deep_tissue": [
+                    "To improve circulation, diminish myospasms, and re-educate injured muscle and fascia 25 minutes of deep tissue and/or neuromuscular re-education was provided for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical, thoracic, and lumbar spine"
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "97140",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 3, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Stephanie Hernandez",
+            "birthday": "07/17/1990",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/c9af483b-8bc6-49ab-a7a9-bd0570c9e303/encounter/771e2221-ced5-426f-99bf-92ba49fa2477",
+            "status": "Seen",
+            "insurance": "AUTO -Trio",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes,"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: Cervical and thoracic spine."
+                ],
+                "therapeutic": [
+                    "Therapeutic exercises taught and performed (15 minutes) today include: Doctor assisted stretches of the cervical spine and upper thoracic spine."
+                ],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98940",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                },
+                {
+                    "code": "97110",
+                    "units": 1,
+                    "description": "Therapeutic Exercise (15 minutes)"
+                }
+            ]
+        },
+        {
+            "name": "Jennifer Coronado",
+            "birthday": "10/18/1989",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/66f9b0e3-90d3-45f7-a370-2df75d6bb1f7/encounter/f195b444-7a0a-4ad1-a19d-136accb639fb",
+            "status": "Seen",
+            "insurance": "AUTO: TRIO",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes,"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: Cervical, thoracic, and lumbar spine"
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98941",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 3, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Cecelia Donelson",
+            "birthday": "02/06/2007",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/85545189-6f24-4414-a8ca-56bd97b6b4d1/encounter/16ff20e8-b059-4803-9c25-599b95134b94",
+            "status": "Seen",
+            "insurance": "AUTO: MEDPAY",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical, thoracic and lumbar spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98941",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 3, 'spinal': 3, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Monica Flores-Jaques",
+            "birthday": "06/25/1988",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/2fb53368-85a5-454f-a46d-a557f665a46b/encounter/ec42e87c-45ca-4e52-be63-56d4507ca603",
+            "status": "Seen",
+            "insurance": "AUTO: GEICO",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: cervical and thoracic spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98940",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "ANTONIO\" TONI\" GOMEZ",
+            "birthday": "02/15/1972",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/96fef7f3-6a09-4fa2-b2dc-6f5f5d796837/encounter/39e4df56-9202-467a-8530-57de73a2c06e",
+            "status": "Seen",
+            "insurance": "MEDICAID",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes,"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L"
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "97140",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 1, 'spinal': 1, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Priscilla Hochschild",
+            "birthday": "05/20/1986",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/309504bc-9ab6-4e90-b807-e07e3e13ee4c/encounter/52bd9fc4-fcdf-46b9-ba0c-e5bd7ad9946b",
+            "status": "Seen",
+            "insurance": "MEDICAID AUTO: Lien",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes,"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments:lumbar spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "97140",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 1, 'spinal': 1, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "Humberto Ramirez",
+            "birthday": "05/20/1966",
+            "provider": "Josef Planansky",
+            "encounter_url": "#/PF/charts/patients/34858a6e-375f-4e8d-924e-4ff13eed23c3/encounter/4537d6bb-103a-497f-aa6c-81748bed5613",
+            "status": "Seen",
+            "insurance": "Auto",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 30 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes,"
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments:  cervical and thoracic spine."
+                ],
+                "therapeutic": [],
+                "acupuncture": []
+            },
+            "codes": [
+                {
+                    "code": "99204",
+                    "modifier": null,
+                    "description": "E/M"
+                },
+                {
+                    "code": "97112",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (30 minutes)"
+                },
+                {
+                    "code": "98940",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        }
+    ]
+}

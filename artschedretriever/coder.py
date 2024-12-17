@@ -41,36 +41,79 @@ class CPTCoder:
         insurance_bill = insurance_bill.strip().upper()
         insurance_map = {
             "AUTO": "AUTO",
-            "Work Comp": "AUTO",
-            "Workers Comp": "AUTO",
+            "WORK": "AUTO",
+            "WORKERS": "AUTO",
+            "WORK COMP": "AUTO",
             "SELF PAY": "SELF PAY",
             "MEDICAID": "MEDICAID",
             "MEDICARE": "MEDICARE"
         }
         
-        # Map standardized insurance values
-        return insurance_map.get(insurance_bill, insurance_bill)
-
-
-    def count_regions(self, text: str) -> int:
-        if not text:
-            return 0
+        # Extract first word for cases like "AUTO - HSS LIEN"
+        first_word = insurance_bill.split(' - ')[0].split()[0]
         
+        # Try mapping first word
+        mapped_insurance = insurance_map.get(first_word)
+        if mapped_insurance:
+            return mapped_insurance
+            
+        # If no map match, check for AUTO-related keywords
+        if any(x in insurance_bill for x in ["AUTO", "LIEN", "HSS"]):
+            return "AUTO"
+                
+        return insurance_bill
+            
+    def count_regions(self, text: str, code_type: str = 'OMT') -> dict:
+        """Count regions based on code type (OMT/CMT)"""
+        if not text:
+            return {'total': 0, 'spinal': 0, 'extraspinal': False}
+            
         regions = set()
+        spinal_regions = set()
+        extraspinal = False
         text = text.upper()
         
-        region_patterns = {
+        # Handle combined L/S notation
+        text = text.replace('L/S', 'L S').replace('L,S', 'L S')
+        
+        spinal_patterns = {
             'C': r'\b[C](?:\s|/|$)|CERV|NECK',
             'T': r'\b[T](?:\s|/|$)|THOR',
             'L': r'\b[L](?:\s|/|$)|LUMB',
-            'S': r'\b[S](?:\s|/|$)|SACR|SI[\s-]?JOINT'
+            'S': r'\b[S](?:\s|/|$)|SACR'
         }
         
-        for region, pattern in region_patterns.items():
+        extraspinal_patterns = {
+            'SHOULDER': r'SHOULDER',
+            'ELBOW': r'ELBOW',
+            'WRIST': r'WRIST',
+            'HAND': r'HANDS?',
+            'HIP': r'HIPS?',
+            'KNEE': r'KNEES?',
+            'ANKLE': r'ANKLES?',
+            'FOOT': r'FEET|FOOT',
+            'RIB': r'RIB|COSTAL',
+            'TMJ': r'TMJ|JAW',
+            'SI': r'SI[\s-]?JOINT'
+        }
+        
+        # Count spinal regions
+        for region, pattern in spinal_patterns.items():
             if re.search(pattern, text):
                 regions.add(region)
-                
-        return len(regions)
+                spinal_regions.add(region)
+        
+        # Count extraspinal regions
+        for region, pattern in extraspinal_patterns.items():
+            if re.search(pattern, text):
+                regions.add(region)
+                extraspinal = True
+        
+        return {
+            'total': len(regions),
+            'spinal': len(spinal_regions),
+            'extraspinal': extraspinal
+        }
 
     def calculate_time_units(self, minutes: int) -> int:
         if minutes < 8:
@@ -86,26 +129,50 @@ class CPTCoder:
         else:
             return 5
 
-    def get_manipulation_code(self, insurance_bill: str, regions: int) -> str:
-        """
-    Determine the manipulation CPT code based on insurance and regions.
-    """
-        if not regions:
+    def get_manipulation_code(self, insurance_bill: str, region_counts: dict, code_type: str = 'OMT') -> str:
+        """Determine manipulation CPT code based on insurance, regions, and code type"""
+        if not region_counts['total']:
             return None
             
+        # Medicaid always gets 97140
         if insurance_bill == "MEDICAID":
             return "97140"
-        elif insurance_bill in ["AUTO", "SELF PAY"]:
-            return "98941" if regions > 2 else "98940"
-        else:  # Default behavior for other insurances
-            return "98926" if regions > 2 else "98925"
+            
+        if code_type == 'OMT':
+            # OMT coding rules
+            total = region_counts['total']
+            if insurance_bill in ["AUTO", "SELF PAY"]:
+                return "98940" if total <= 2 else "98941"
+            else:
+                if total <= 2:
+                    return "98925"
+                elif total <= 4:
+                    return "98926"
+                elif total <= 6:
+                    return "98927"
+                elif total <= 8:
+                    return "98928"
+                else:
+                    return "98929"
+        
+        else:  # CMT
+            # CMT spinal coding only
+            spinal = region_counts['spinal']
+            if spinal <= 2:
+                return "98940"
+            elif spinal <= 4:
+                return "98941"
+            else:
+                return "98942"
 
     def get_neuromuscular_code(self, insurance_bill: str) -> str:
         """
         Return the neuromuscular CPT code based on insurance.
         """
-        if insurance_bill in ["AUTO", "SELF PAY"]:
+        if insurance_bill == "AUTO":
             return "97112"  # Auto and Work Comp use 97112
+        elif insurance_bill == "SELF PAY":
+            return "97124"  # Self Pay uses 97124
         else:
             return "97530"  # Default code
 
