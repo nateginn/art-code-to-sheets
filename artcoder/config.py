@@ -1,40 +1,30 @@
-# config.py
+# artschedretriever/config.py
 
-import json
+from pathlib import Path
+from dotenv import load_dotenv
 import os
 
 class Config:
     def __init__(self):
-        self.config_file = 'config.json'
-        self.default_config = {
-            'credentials_path': './credentials.json',
-            'active_spreadsheet_id': None,
-            'spreadsheet_name': 'Patient Records'
-        }
-        self.load_config()
+        self.load_env()
+        self.pdf_output_directory = os.getenv('PDF_OUTPUT_DIR', 
+            str(Path.home() / 'Documents' / 'PF_Schedules'))
+        self.dev_folder_id = os.getenv('DEV_FOLDER_ID')
+        self.prod_folder_id = os.getenv('PROD_FOLDER_ID')
+        
+        if not all([self.dev_folder_id, self.prod_folder_id]):
+            raise ValueError("Missing folder IDs in .env file")
+    def load_env(self):
+        """Load configuration from .env file"""
+        env_path = Path(__file__).parent / '.env'
+        load_dotenv(env_path)
+        
+        self.username = os.getenv('PF_USERNAME')
+        self.password = os.getenv('PF_PASSWORD')
+        
+        if not all([self.username, self.password]):
+            raise ValueError("Missing required credentials in .env file")
 
-    def load_config(self):
-        """Load configuration from file"""
-        if os.path.exists(self.config_file):
-            try:
-                with open(self.config_file, 'r') as f:
-                    self.config = json.load(f)
-            except:
-                self.config = self.default_config
-        else:
-            self.config = self.default_config
-            self.save_config()
-
-    def save_config(self):
-        """Save configuration to file"""
-        with open(self.config_file, 'w') as f:
-            json.dump(self.config, f)
-
-    def get(self, key):
-        """Get a configuration value"""
-        return self.config.get(key, self.default_config.get(key))
-
-    def set(self, key, value):
-        """Set a configuration value"""
-        self.config[key] = value
-        self.save_config()
+    def get_folder_id(self):
+        """Return the appropriate folder ID based on environment"""
+        return self.dev_folder_id  # For now, just returns dev folder ID
