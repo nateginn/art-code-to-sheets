@@ -11,19 +11,16 @@ class CPTCoder:
         self.cpt_patterns = {
             # Time-based therapy patterns with flexible minute matching
             'neuromuscular': r'(?:\b(deep tissue|neuromuscular)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(deep tissue|neuromuscular)\b)',
-            'therapeutic_exercise': {
-                'time': r'(?:Therapeutic exercises?|exercises?) (?:taught and performed )?\(?(\d+) minutes?\)?',
-                'regions': r'(?:Therapeutic exercises?|exercises?) (?:taught and performed )?\(?(?:\d+) minutes?\)?(.*?)(?:\.|\n|$)'
-            },
+            'therapeutic_exercise': r'(?:\b(exercise|exercises)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(exercise|exercises)\b)',
             'ultrasound': r'(?:\b(ultrasound)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(ultrasound)\b)',
             'electrical_stim': r'(?:\b(electric stim|interferential|TENS)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(electric stim|interferential|TENS)\b)',
             'active_release': r'(?:\b(active release)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(active release)\b)',
             'manual_therapy': r'(?:\b(myofascial release|soft tissue)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(myofascial release|soft tissue)\b)',
             
-            # Manipulation patterns for both spinal and paraspinal
+            # Manipulation patterns for both spinal and extraspinal
             'manipulation': {
-                'spinal': r'Manipulation to the affected (?:spinal|paraspinal) segments?: ([^\.]+)',
-                'paraspinal': r'Manipulation to the affected (?:spinal|paraspinal) segments?: ([^\.]+)'
+                'spinal': r'Manipulation to the affected (?:spinal segments?): ([^\.]+)',
+                'extraspinal': r'Manipulation to the affected (?:extraspinal segments?): ([^\.]+)'
             },
             
             # Region-based pattern
@@ -48,7 +45,7 @@ class CPTCoder:
 
     def validate_insurance(self, insurance: str) -> str:
         """Standardize insurance types for code selection."""
-        insurance = insurance.upper()
+        insurance = insurance.upper().split(':')[0].split()[0]
         
         if 'MEDICAID' in insurance:
             return 'MEDICAID'
@@ -71,15 +68,22 @@ class CPTCoder:
         extraspinal = False
         text = text.upper()
         
-        # Handle combined L/S notation
-        text = text.replace('L/S', 'L S').replace('L,S', 'L S')
+        # Handle L/S notation by replacing with "L S" to count them separately
+        # Match L/S with optional spaces and commas
+        text = re.sub(r'L[\s,]*/[\s,]*S', 'L, S', text)
+        text = re.sub(r'L[\s,]+S', 'L, S', text)
         
         spinal_patterns = {
-            'C': r'\b[C](?:\s|/|$)|CERV|NECK',
-            'T': r'\b[T](?:\s|/|$)|THOR',
-            'L': r'\b[L](?:\s|/|$)|LUMB',
-            'S': r'\b[S](?:\s|/|$)|SACR'
+            'C': r'\b[C](?:\s|,|/|$)|CERV|NECK',
+            'T': r'\b[T](?:\s|,|/|$)|THOR',
+            'L': r'\b[L](?:\s|,|/|$)|LUMB',
+            'S': r'\b[S](?:\s|,|/|$)|SACR'
         }
+        
+        for region, pattern in spinal_patterns.items():
+            if re.search(pattern, text):
+                regions.add(region)
+                spinal_regions.add(region)
         
         extraspinal_patterns = {
             'SHOULDER': r'SHOULDER',
@@ -90,15 +94,11 @@ class CPTCoder:
             'KNEE': r'KNEES?',
             'ANKLE': r'ANKLES?',
             'FOOT': r'FEET|FOOT',
-            'RIB': r'RIB|COSTAL',
+            'RIB': r'RIBS?|COSTAL',
             'TMJ': r'TMJ|JAW',
-            'SI': r'SI[\s-]?JOINT'
+            'SI': r'SI[\s-]?JOINT',
+            'CLAVICLE': r'CLAVICLE'
         }
-        
-        for region, pattern in spinal_patterns.items():
-            if re.search(pattern, text):
-                regions.add(region)
-                spinal_regions.add(region)
         
         for region, pattern in extraspinal_patterns.items():
             if re.search(pattern, text):
@@ -157,9 +157,9 @@ class CPTCoder:
 
     def get_neuromuscular_code(self, insurance_bill: str) -> str:
         """Get neuromuscular CPT code based on insurance."""
-        if insurance_bill in ["AUTO", "WORK COMP"]:
+        if insurance_bill in ["AUTO", "WORK"]:
             return "97112"
-        elif insurance_bill == "SELF PAY":
+        elif insurance_bill == "SELF":
             return "97124"
         else:
             return "97530"
@@ -221,99 +221,64 @@ class CPTCoder:
         codes = []
         insurance_bill = self.validate_insurance(insurance_bill)
         
-        # Extract E/M codes
-        for code, pattern in self.cpt_patterns['exam'].items():
-            if re.search(pattern, plan_text, re.IGNORECASE):
-                codes.append({
-                    'code': code,
-                    'modifier': '25',  # Always add -25 modifier for E/M codes
-                    'description': 'E/M with Modifier 25'  # Updated description to remind about modifier
-                })
-
-        # Process manipulation (combine spinal and paraspinal findings)
-        all_regions = {'total': 0, 'spinal': 0, 'extraspinal': False}
-        
-        # Find manipulation text
-        manip_text = None
-        for manip_type in ['spinal', 'paraspinal']:
-            pattern = self.cpt_patterns['manipulation'][manip_type]
-            match = re.search(pattern, plan_text, re.IGNORECASE)
-            if match:
-                manip_text = match.group(0)  # Store the full manipulation text
-                regions = self.count_regions(match.group(1))
-                all_regions['total'] = max(all_regions['total'], regions['total'])
-                all_regions['spinal'] = max(all_regions['spinal'], regions['spinal'])
-                all_regions['extraspinal'] = all_regions['extraspinal'] or regions['extraspinal']
-        
-        # Only check for extraspinal in manipulation text if it exists
-        if manip_text:
-            extraspinal_pattern = r'(?:extremities|arm|leg|ankle|foot|hand|wrist|knee|shoulder)'
-            if re.search(extraspinal_pattern, manip_text, re.IGNORECASE):
-                all_regions['extraspinal'] = True
+        # Handle deep tissue/neuromuscular
+        match = re.search(self.cpt_patterns['neuromuscular'], plan_text, re.IGNORECASE)
+        if match:
+            if match.group(1):  # Procedure first
+                minutes = int(match.group(2))
+            elif match.group(3):  # Time first
+                minutes = int(match.group(3))
             else:
-                all_regions['extraspinal'] = False
+                minutes = 0
+                
+            if minutes > 0:
+                units = self.calculate_time_units(minutes)
+                if units > 0:
+                    codes.append({
+                        'code': self.get_neuromuscular_code(insurance_bill),
+                        'units': units,
+                        'description': f'Deep tissue Therapy ({minutes} minutes)'
+                    })
         
-        # Handle main manipulation code
-        if all_regions['total'] > 0:
-            manip_code = self.get_manipulation_code(insurance_bill, all_regions)
+        # Handle manipulation
+        match = re.search(self.cpt_patterns['manipulation']['spinal'], plan_text)
+        if match:
+            regions = self.count_regions(match.group(1))
+            manip_code = self.get_manipulation_code(insurance_bill, regions)
             if manip_code:
                 codes.append({
                     'code': manip_code,
                     'units': 1,
-                    'description': f'Manipulation ({str(all_regions)} regions)'
+                    'description': f'Manipulation ({regions} regions)'
                 })
                 
-            # Handle extraspinal manipulation separately
-            if all_regions['extraspinal'] and insurance_bill != 'MEDICAID' and insurance_bill != 'OMT':
+            # Add extraspinal code if needed
+            if regions['extraspinal'] and insurance_bill != 'MEDICAID':
                 codes.append({
                     'code': '98943',
                     'units': 1,
                     'description': 'Extraspinal Manipulation'
                 })
-
-        # Process therapeutic exercises
-        time_pattern = self.cpt_patterns['therapeutic_exercise']['time']
-        time_match = re.search(time_pattern, plan_text, re.IGNORECASE)
-        if time_match:
-            minutes = int(time_match.group(1))
-            units = max(1, minutes // 15)  # 1 unit per 15 minutes, minimum 1 unit
-            codes.append({
-                'code': '97110',
-                'units': units,
-                'description': f'Therapeutic Exercise ({minutes} minutes)'
-            })
-
-        # Process time-based treatments
-        time_patterns = ['neuromuscular', 'ultrasound', 
-                        'electrical_stim', 'active_release', 'manual_therapy']
-                        
-        for pattern in time_patterns:
-            if pattern == 'neuromuscular':
-                # Handle neuromuscular separately due to special insurance rules
-                match = re.search(self.cpt_patterns[pattern], plan_text, re.IGNORECASE)
-                if match:
-                    if match.group(1):
-                        keyword = match.group(1)
-                        minutes = int(match.group(2))
-                    elif match.group(3):
-                        minutes = int(match.group(3))
-                        keyword = match.group(4)
-                    else:
-                        continue
-                        
-                    units = self.calculate_time_units(minutes)
-                    if units > 0:
-                        codes.append({
-                            'code': self.get_neuromuscular_code(insurance_bill),
-                            'units': units,
-                            'description': f'{keyword.capitalize()} Therapy ({minutes} minutes)'
-                        })
+        
+        # Handle therapeutic exercise
+        match = re.search(self.cpt_patterns['therapeutic_exercise'], plan_text, re.IGNORECASE)
+        if match:
+            if match.group(1):  # Procedure first
+                minutes = int(match.group(2))
+            elif match.group(3):  # Time first
+                minutes = int(match.group(3))
             else:
-                # Handle other time-based treatments
-                code_info = self.get_time_based_code(pattern, insurance_bill, plan_text)
-                if code_info:
-                    codes.append(code_info)
-
+                minutes = 0
+                
+            if minutes > 0:
+                units = self.calculate_time_units(minutes)
+                if units > 0:
+                    codes.append({
+                        'code': '97110',
+                        'units': units,
+                        'description': f'Therapeutic Exercise ({minutes} minutes)'
+                    })
+        
         # Process acupuncture
         acupuncture_codes = self.handle_acupuncture(plan_text)
         codes.extend(acupuncture_codes)
@@ -325,57 +290,52 @@ class CPTCoder:
         phrases = re.split(r'(?<=\.)\s*(?=[A-Z])|(?<=\.)(?=[A-Z])', text)
         return '|'.join(phrase.strip() for phrase in phrases if phrase.strip())
     
-    def process_plans(self, input_file: str, show_output: bool = True) -> Dict:
+    def process_plans(self, input_file: str, show_output: bool = True) -> None:
         """Process multiple plans from input file."""
-        results = {
-            'processed_datetime': datetime.now().isoformat(),
-            'plans': []
-        }
-
-        with open(input_file, 'r') as f:
-            for i, line in enumerate(f, 1):
-                if '|' not in line:
-                    continue
-                    
-                insurance, plan_text = line.strip().split('|', 1)
-                insurance = self.validate_insurance(insurance)
-                plan_text = self.format_plan_text(plan_text)
-                codes = self.extract_codes(insurance, plan_text)
+        try:
+            with open(input_file, 'r') as f:
+                data = json.load(f)
                 
-                plan_result = {
-                    'plan_number': i,
+            results = []
+            for patient in data.get('patients', []):
+                plan = patient.get('plan', {})
+                insurance = patient.get('insurance', '')
+                
+                # Convert plan dict to text format
+                plan_text = []
+                for section, entries in plan.items():
+                    if entries and isinstance(entries, list):
+                        plan_text.extend(entries)
+                
+                result = {
+                    'name': patient.get('name', ''),
                     'insurance': insurance,
-                    'plan_text': plan_text,
-                    'codes': codes
+                    'plan_text': '\n'.join(plan_text),
+                    'codes': self.extract_codes(self.validate_insurance(insurance), '\n'.join(plan_text))
                 }
-                
-                results['plans'].append(plan_result)
-                
-                if show_output:
-                    print(f"\nPlan {i} - Insurance: {insurance}")
-                    print("Codes:")
-                    for code in codes:
-                        if 'modifier' in code:
-                            print(f"  {code['code']}-{code['modifier']} ({code['description']})")
-                        else:
-                            print(f"  {code['code']} units: {code['units']} ({code['description']})")
-                    print("-" * 80)
-
-        with open(self.output_file, 'w') as f:
-            json.dump(results, f, indent=2)
+                results.append(result)
             
-        if show_output:
-            print(f"\nResults saved to: {self.output_file}")
+            output = {
+                'processed_datetime': datetime.now().isoformat(),
+                'plans': results
+            }
             
-        return results
+            with open(self.output_file, 'w') as f:
+                json.dump(output, f, indent=2)
+                
+            if show_output:
+                print(f"\nResults saved to: {self.output_file}")
+                
+        except Exception as e:
+            print(f"Error processing plans: {str(e)}")
     
 class PlanProcessor:
     def __init__(self):
         self.cpt_coder = CPTCoder()
         self.sections = {
             'deep_tissue': r'(?:session of \d+ minutes|deep tissue|neuromuscular)',
-            'manipulation': r'Manipulation to the affected (?:spinal segments|paraspinal segments)',
-            'extraspinal': r'Manipulation to the affected (?:extremities|arm|leg|ankle|foot|hand|wrist|knee|shoulder)',
+            'manipulation': r'Manipulation to the affected (?:spinal segments?|extraspinal segments?)',
+            'extraspinal': r'Manipulation to the affected (?:extraspinal segments?|shoulder|elbow|wrist|hands?|hips?|knees?|ankles?|(?:feet|foot)|(?:ribs?|costal)|(?:tmj|jaw)|(?:si[\s-]?joint)|clavicle)',
             'therapeutic': r'Therapeutic exercises',
             'acupuncture': r'Acupuncture',
             'ultrasound': r'[Uu]ltrasound',
@@ -404,7 +364,7 @@ class PlanProcessor:
 
 def main():
     coder = CPTCoder()
-    input_file = os.path.join(os.path.dirname(__file__), 'plan_sample.txt')
+    input_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'artcoder', 'temp_json', 'agenda_data_GREELEY_20241218.json')
     coder.process_plans(input_file)
 
 if __name__ == "__main__":
