@@ -19,7 +19,7 @@ class ScheduleRetriever:
     async def init_browser(self):
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(headless=False)
-        self.context = await self.browser.new_context()
+        self.context = await self.browser.new_context(ignore_default_args=["--disable-extensions"], args=["--incognito"])
         self.page = await self.context.new_page()
 
     async def select_date(self, target_date):
@@ -101,7 +101,7 @@ class ScheduleRetriever:
             await self.page.fill("input[type='password']", self.config.password)
             await self.page.click("button[type='submit']")
             
-            await asyncio.sleep(20)  # 2FA wait
+            await asyncio.sleep(200)  # 2FA wait
             
             await self.page.goto(self.agenda_url)
             await asyncio.sleep(1)

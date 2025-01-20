@@ -1,7 +1,5 @@
 # artschedretriever/plan.py
 
-# artschedretriever/plan.py
-
 import asyncio
 import json
 import logging

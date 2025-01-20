@@ -219,6 +219,7 @@ class SheetsManager:
             logging.error(f"Error in create_and_populate_sheet: {str(e)}")
             logging.exception("Full traceback:")  # This will log the full traceback
             return None
+        
 
     def extract_sheet_data(self, spreadsheet_id):
         """Extract all data from sheet including formatted columns"""
