@@ -49,6 +49,8 @@ class LocationDateDialog(QDialog):
         self.greeley = QCheckBox("Greeley")
         self.unc = QCheckBox("UNC")
         self.foco = QCheckBox("FOCO")
+        self.naigreeley = QCheckBox("NAI - Greeley")
+        self.naifoco = QCheckBox("NAI - Fort Collins")
         
         self.all_locations.stateChanged.connect(self.toggle_locations)
         
@@ -56,6 +58,8 @@ class LocationDateDialog(QDialog):
         location_layout.addWidget(self.greeley)
         location_layout.addWidget(self.unc)
         location_layout.addWidget(self.foco)
+        location_layout.addWidget(self.naigreeley)
+        location_layout.addWidget(self.naifoco)
         
         location_group.setLayout(location_layout)
         layout.addWidget(location_group)
@@ -87,7 +91,7 @@ class LocationDateDialog(QDialog):
         self.setLayout(layout)
 
     def toggle_locations(self, state):
-        for cb in [self.greeley, self.unc, self.foco]:
+        for cb in [self.greeley, self.unc, self.foco, self.naigreeley, self.naifoco]:
             cb.setEnabled(not state)
             cb.setChecked(state)
 
@@ -105,12 +109,14 @@ class LocationDateDialog(QDialog):
         self.end_date = end_date
         
         if self.all_locations.isChecked():
-            self.selected_locations = ["Accelerated Rehab Therapy - GREELEY", "ART at UNC", "ART FOCO"]
+            self.selected_locations = ["ART - GREELEY", "ART at UNC", "ART FOCO", "NAI - Greeley", "NAI - Fort Collins"]
         else:
             self.selected_locations = []
-            if self.greeley.isChecked(): self.selected_locations.append("Accelerated Rehab Therapy - GREELEY")
+            if self.greeley.isChecked(): self.selected_locations.append("ART - GREELEY")
             if self.unc.isChecked(): self.selected_locations.append("ART at UNC") 
             if self.foco.isChecked(): self.selected_locations.append("ART FOCO")
+            if self.naigreeley.isChecked(): self.selected_locations.append("NAI - Greeley")
+            if self.naifoco.isChecked(): self.selected_locations.append("NAI - Fort Collins")
             
         if not self.selected_locations:
             QMessageBox.warning(self, "No Location Selected", 

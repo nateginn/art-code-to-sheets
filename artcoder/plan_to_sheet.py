@@ -181,6 +181,9 @@ class SheetsManager:
             # Prepare data
             values = [SHEET_COLUMNS]  # Headers
             for patient in data.get('patients', []):
+                # Skip patients with "Cancelled" or "No show" status
+                if patient.get('status') in ("Cancelled", "No show"):
+                    continue
                 # Initialize row with basic patient data
                 row = [
                     patient.get('name', ''),

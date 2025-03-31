@@ -13,14 +13,19 @@ class CPTCoder:
             # Time-based therapy patterns with flexible minute matching
             "neuromuscular": r"(?:\b(deep tissue|neuromuscular)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(deep tissue|neuromuscular)\b)",
             "therapeutic_exercise": r"(?:\b(exercise|exercises)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(exercise|exercises)\b)",
+            "therapeutic_activities": r"(?:\b(therapeutic activities|functional activities)\b\s+.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(therapeutic activities|functional activities)\b\s*)|(?:\b(therapeutic activities|functional activities)\s*x\s*(\d+)\s*minutes?)",
             "ultrasound": r"(?:\b(ultrasound)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(ultrasound)\b)",
             "electrical_stim": r"(?:\b(electric stim|interferential|TENS)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(electric stim|interferential|TENS)\b)",
             "active_release": r"(?:\b(active release)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(active release)\b)",
-            "manual_therapy": r"(?:\b(myofascial release|soft tissue)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(myofascial release|soft tissue)\b)",
+            "manual_therapy": r"(?:\b(myofascial release|soft tissue|manual therapy)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(myofascial release|soft tissue|manual therapy)\b)|(?:\b(myofascial release|soft tissue|manual therapy)\s*x\s*(\d+)\s*minutes?)",
             # Manipulation patterns for both spinal and extraspinal
             "manipulation": {
                 "spinal": r"Manipulation to the affected (?:spinal segments?): ([^\.]+)",
                 "extraspinal": r"Manipulation to the affected (?:extraspinal segments?): ([^\.]+)",
+            },
+            "chiropractic_adjustment": {
+                "spinal": r"(?:Chiropractic adjustment|Chiropractic adjustments) to the affected (?:spinal segments?): ([^\.]+)",
+                "extraspinal": r"(?:Chiropractic adjustment|Chiropractic adjustments) to the affected (?:extraspinal segments?): ([^\.]+)",
             },
             # Region-based pattern
             "acupuncture": {
@@ -34,6 +39,9 @@ class CPTCoder:
                 "99205": r"99205(?:-25)?",
                 "99213": r"99213(?:-25)?",
                 "99214": r"99214(?:-25)?",
+                "97162": r"97162",
+                "97163": r"97163",
+                "97164": r"97164",
             },
         }
 
@@ -176,6 +184,10 @@ class CPTCoder:
         else:
             return "97530"
 
+    def get_therapeutic_activities_code(self, insurance_bill: str) -> str:
+        """Get therapeutic activities CPT code."""
+        return "97530"  # 97530 is used for all insurance types for therapeutic activities
+
     def get_time_based_code(
         self, pattern_key: str, insurance_bill: str, plan_text: str
     ) -> Dict:
@@ -201,6 +213,7 @@ class CPTCoder:
             "electrical_stim": "97032" if insurance_bill == "MEDICARE" else "97014",
             "active_release": "97140",
             "manual_therapy": "97140",
+            "therapeutic_activities": self.get_therapeutic_activities_code(insurance_bill),
         }
 
         code = code_map.get(pattern_key)
@@ -266,6 +279,29 @@ class CPTCoder:
                             "code": self.get_neuromuscular_code(insurance_bill),
                             "units": units,
                             "description": f"Deep tissue Therapy ({minutes} minutes)",
+                        }
+                    )
+
+        # Handle therapeutic activities
+        match = re.search(self.cpt_patterns["therapeutic_activities"], plan_text, re.IGNORECASE)
+        if match:
+            if match.group(1):  # Procedure first in standard format
+                minutes = int(match.group(2))
+            elif match.group(3):  # Time first in standard format
+                minutes = int(match.group(3))
+            elif match.group(5):  # "x minutes" format
+                minutes = int(match.group(6))
+            else:
+                minutes = 0
+
+            if minutes > 0:
+                units = self.calculate_time_units(minutes)
+                if units > 0:
+                    codes.append(
+                        {
+                            "code": self.get_therapeutic_activities_code(insurance_bill),
+                            "units": units,
+                            "description": f"Therapeutic Activities ({minutes} minutes)",
                         }
                     )
 
@@ -378,12 +414,14 @@ class PlanProcessor:
             "deep_tissue": r"(?:session of \d+ minutes|deep tissue|neuromuscular)",
             "manipulation": r"Manipulation to the affected (?:spinal segments?|extraspinal segments?)",
             "extraspinal": r"Manipulation to the affected (?:extraspinal segments?|shoulder|elbow|wrist|hands?|hips?|knees?|ankles?|(?:feet|foot)|(?:ribs?|costal)|(?:tmj|jaw)|(?:si[\s-]?joint)|clavicle)",
-            "therapeutic": r"Therapeutic exercises",
+            "chiropractic_adjustment": r"(?:Chiropractic adjustment|Chiropractic adjustments) to the affected (?:spinal segments?|extraspinal segments?)",
+            "therapeutic_exercise": r"Therapeutic exercises|Therex",
+            "therapeutic_activities": r"(?:therapeutic activities|functional activities)",
             "acupuncture": r"Acupuncture",
             "ultrasound": r"[Uu]ltrasound",
             "electrical_stim": r"[Ee]lectric\s*stim|[Ii]nterferential|TENS",
             "active_release": r"[Aa]ctive release",
-            "manual_therapy": r"[Mm]yofascial release|[Ss]oft tissue",
+            "manual_therapy": r"[Mm]yofascial release|[Ss]oft tissue|[Mm]anual therapy",
         }
 
     def process_plan(self, insurance: str, plan_text: str) -> dict:
