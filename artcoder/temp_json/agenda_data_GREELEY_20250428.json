@@ -27,6 +27,11 @@
             },
             "codes": [
                 {
+                    "code": "97530",
+                    "units": 0,
+                    "description": "Therapeutic Activities (Manual time verification needed)"
+                },
+                {
                     "code": "97140",
                     "units": 2,
                     "description": "Manual Therapy (30 minutes)"

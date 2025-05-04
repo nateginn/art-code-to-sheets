@@ -284,27 +284,41 @@ class CPTCoder:
                     )
 
         # Handle therapeutic activities
-        match = re.search(self.cpt_patterns["therapeutic_activities"], plan_text, re.IGNORECASE)
-        if match:
-            if match.group(1):  # Procedure first in standard format
-                minutes = int(match.group(2))
-            elif match.group(3):  # Time first in standard format
-                minutes = int(match.group(3))
-            elif match.group(5):  # "x minutes" format
-                minutes = int(match.group(6))
-            else:
-                minutes = 0
+        keywords_pattern = r'\b(therapeutic activities|functional activities)\b'
+        keywords_match = re.search(keywords_pattern, plan_text, re.IGNORECASE)
 
-            if minutes > 0:
-                units = self.calculate_time_units(minutes)
-                if units > 0:
-                    codes.append(
-                        {
-                            "code": self.get_therapeutic_activities_code(insurance_bill),
-                            "units": units,
-                            "description": f"Therapeutic Activities ({minutes} minutes)",
-                        }
-                    )
+        if keywords_match:
+            time_match = re.search(self.cpt_patterns["therapeutic_activities"], plan_text, re.IGNORECASE)
+            minutes = 0
+            units = 0
+
+            if time_match:
+                if time_match.group(2):  # Procedure first, standard format (group 1 is keyword)
+                    minutes = int(time_match.group(2))
+                elif time_match.group(3):  # Time first, standard format (group 4 is keyword)
+                    minutes = int(time_match.group(3))
+                elif time_match.group(6): # "x minutes" format (group 5 is keyword)
+                    minutes = int(time_match.group(6))
+
+                if minutes > 0:
+                    units = self.calculate_time_units(minutes)
+
+            if units > 0:
+                codes.append(
+                    {
+                        "code": self.get_therapeutic_activities_code(insurance_bill),
+                        "units": units,
+                        "description": f"Therapeutic Activities ({minutes} minutes)",
+                    }
+                )
+            else:
+                codes.append(
+                    {
+                        "code": self.get_therapeutic_activities_code(insurance_bill),
+                        "units": 0,
+                        "description": "Therapeutic Activities (Manual time verification needed)",
+                    }
+                )
 
         # Handle manipulation
         match = re.search(self.cpt_patterns["manipulation"]["spinal"], plan_text)
