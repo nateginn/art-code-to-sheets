@@ -215,9 +215,27 @@ class PlanExtractor:
             # Extract the first word for billing
             insurance_first_word = insurance_line.split()[0] if insurance_line else "UNKNOWN"
 
-            # Get plan text
-            plan_element = await self.page.wait_for_selector("[data-element='plan-note'] .editor[data-element='rich-text-editor']")
-            plan_text = await plan_element.inner_html() if plan_element else ""
+            # Get plan text - Handle both signed and unsigned notes
+            plan_text = ""
+            plan_element = None
+            try:
+                # Try unsigned note selector first
+                unsigned_selector = "[data-element='plan-note'] .editor[data-element='rich-text-editor']"
+                plan_element = await self.page.query_selector(unsigned_selector)
+                
+                if not plan_element:
+                    # Try signed note selector if unsigned not found
+                    signed_selector = "[data-element='plan-note-read-only'] .pf-rich-text"
+                    plan_element = await self.page.query_selector(signed_selector)
+
+                if plan_element:
+                    plan_text = await plan_element.inner_html()
+                else:
+                    logging.warning(f"Could not find plan text element for URL: {encounter_url}")
+                    
+            except Exception as e:
+                logging.error(f"Error finding plan element: {e} for URL: {encounter_url}")
+            
             print(f"\nRaw plan text found: {plan_text[:100]}...")  # Show first 100 chars
 
             # Clean plan text

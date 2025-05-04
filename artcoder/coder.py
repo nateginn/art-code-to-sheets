@@ -11,13 +11,14 @@ class CPTCoder:
     def __init__(self):
         self.cpt_patterns = {
             # Time-based therapy patterns with flexible minute matching
-            "neuromuscular": r"(?:\b(deep tissue|neuromuscular)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(deep tissue|neuromuscular)\b)",
-            "therapeutic_exercise": r"(?:\b(exercise|exercises)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(exercise|exercises)\b)",
-            "therapeutic_activities": r"(?:\b(therapeutic activities|functional activities)\b\s+.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(therapeutic activities|functional activities)\b\s*)|(?:\b(therapeutic activities|functional activities)\s*x\s*(\d+)\s*minutes?)",
-            "ultrasound": r"(?:\b(ultrasound)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(ultrasound)\b)",
-            "electrical_stim": r"(?:\b(electric stim|interferential|TENS)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(electric stim|interferential|TENS)\b)",
-            "active_release": r"(?:\b(active release)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(active release)\b)",
-            "manual_therapy": r"(?:\b(myofascial release|soft tissue|manual therapy)\b.*?(\d+)\s*minutes?|\b(\d+)\s*minutes?.*?\b(myofascial release|soft tissue|manual therapy)\b)|(?:\b(myofascial release|soft tissue|manual therapy)\s*x\s*(\d+)\s*minutes?)",
+            "neuromuscular": r"(?:\b(deep tissue|neuromuscular)\b.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(deep tissue|neuromuscular)\b)",
+            "therapeutic_exercise": r"(?:\b(exercise|exercises)\b.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(exercise|exercises)\b)",
+            "therapeutic_activities": r"(?:\b(therapeutic activities|functional activities)\b\s+.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(therapeutic activities|functional activities)\b\s*)|(?:\b(therapeutic activities|functional activities)\s*x\s*(\d+)\s*minutes?:?)",
+            "ultrasound": r"(?:\b(ultrasound)\b.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(ultrasound)\b)",
+            "electrical_stim": r"(?:\b(electric stim|interferential|TENS)\b.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(electric stim|interferential|TENS)\b)",
+            "active_release": r"(?:\b(active release)\b.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(active release)\b)",
+            "manual_therapy": r"(?:\b(myofascial release|soft tissue|manual therapy)\b.*?(\d+)\s*minutes?:?|\b(\d+)\s*minutes?:?.*?\b(myofascial release|soft tissue|manual therapy)\b)|(?:\b(myofascial release|soft tissue|manual therapy)\s*x\s*(\d+)\s*minutes?:?)",
+            "dry_needling": r"\b(dry needling)\b",
             # Manipulation patterns for both spinal and extraspinal
             "manipulation": {
                 "spinal": r"Manipulation to the affected (?:spinal segments?): ([^\.]+)",
@@ -354,9 +355,48 @@ class CPTCoder:
                         }
                     )
 
+        # Handle manual therapy
+        match = re.search(self.cpt_patterns["manual_therapy"], plan_text, re.IGNORECASE)
+        if match:
+            if match.group(2):  # Keyword first, standard format
+                minutes = int(match.group(2))
+            elif match.group(3):  # Time first, standard format
+                minutes = int(match.group(3))
+            elif match.group(6): # "x minutes" format
+                minutes = int(match.group(6))
+            else:
+                minutes = 0
+
+            if minutes > 0:
+                units = self.calculate_time_units(minutes)
+                if units > 0:
+                    codes.append(
+                        {
+                            "code": "97140",
+                            "units": units,
+                            "description": f"Manual Therapy ({minutes} minutes)",
+                        }
+                    )
+
+        # Handle dry needling
+        if re.search(self.cpt_patterns["dry_needling"], plan_text, re.IGNORECASE):
+            # Check if 20561 is already present from exam codes or other means (optional safety)
+            if not any(item.get('code') == '20561' for item in codes):
+                codes.append(
+                    {
+                        "code": "20561", 
+                        "units": 1, 
+                        "description": "Dry Needling"
+                    }
+                )
+
         # Process acupuncture
         acupuncture_codes = self.handle_acupuncture(plan_text)
         codes.extend(acupuncture_codes)
+
+        # Add logging if no codes found after processing
+        if not codes and plan_text:
+            print(f"No CPT codes generated for plan text: {plan_text[:100]}...")
 
         return codes
 
