@@ -14,7 +14,7 @@ from PyQt6.QtGui import QTextCharFormat, QTextCursor, QShortcut, QKeySequence, Q
 
 from sheets_integration import SheetsManager
 
-LOCATIONS = ["Greeley", "UNC", "FOCO"]
+LOCATIONS = ["Greeley", "UNC", "FOCO", "Denver"]
 
 COMMON_INSURANCES = sorted([
     "AUTO:GEICO", "AUTO:HSS", "AUTO:LIEN", "AUTO:MEDPAY", "AUTO:MARRICK",
