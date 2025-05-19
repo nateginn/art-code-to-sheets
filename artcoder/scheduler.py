@@ -43,18 +43,46 @@ class ScheduleRetriever:
             raise
 
     async def switch_location(self, location):
-        if location != self.current_location:
-            try:
-                await self.page.click(".scheduler-toolbar__select-facilities .composable-select__choice")
-                await asyncio.sleep(1)
-                await self.page.click(f"li.composable-select__result-item a:text('{location}')")
+        try:
+            # Always click to open the dropdown, even if we think we're on the right location
+            # This ensures we're in a known state
+            await self.page.click(".scheduler-toolbar__select-facilities .composable-select__choice")
+            await asyncio.sleep(1)
+            
+            # Get the current selected location from the UI
+            current_location_element = await self.page.query_selector(".scheduler-toolbar__select-facilities .composable-select__choice")
+            current_location_text = await current_location_element.text_content() if current_location_element else "Unknown"
+            
+            logging.info(f"Current location in UI: {current_location_text.strip()}, Target location: {location}")
+            
+            # If we're already on the right location, just close the dropdown and return
+            if current_location_text.strip() == location:
+                # Click elsewhere to close the dropdown
+                await self.page.click(".scheduler-toolbar__title")
                 await asyncio.sleep(1)
                 self.current_location = location
+                logging.info(f"Already on correct location: {location}")
                 return True
-            except Exception as e:
-                logging.error(f"Location switch error: {str(e)}")
+                
+            # Otherwise, select the new location
+            await self.page.click(f"li.composable-select__result-item a:text('{location}')")
+            await asyncio.sleep(2)  # Give more time for the UI to update
+            
+            # Verify the location was actually changed
+            verify_element = await self.page.query_selector(".scheduler-toolbar__select-facilities .composable-select__choice")
+            verify_text = await verify_element.text_content() if verify_element else "Unknown"
+            
+            if verify_text.strip() == location:
+                self.current_location = location
+                logging.info(f"Successfully switched to location: {location}")
+                return True
+            else:
+                logging.error(f"Failed to switch location. UI shows: {verify_text.strip()}, wanted: {location}")
                 return False
-        return True
+                
+        except Exception as e:
+            logging.error(f"Location switch error: {str(e)}")
+            return False
 
     async def extract_schedule_data(self):
         try:
@@ -113,9 +141,6 @@ class ScheduleRetriever:
             return False
 
     async def process_location_dates(self, location, start_date, end_date):
-        if not await self.switch_location(location):
-            return None
-
         if location not in self.processed_dates:
             self.processed_dates[location] = set()
 
@@ -123,6 +148,9 @@ class ScheduleRetriever:
         current_date = start_date
         
         while current_date <= end_date:
+            # Reselect location before each date for added robustness
+            if not await self.switch_location(location):
+                return None
             date_key = current_date.strftime("%Y-%m-%d")
             if date_key not in self.processed_dates[location]:
                 await self.select_date(current_date)
