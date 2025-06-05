@@ -179,7 +179,7 @@ class CPTCoder:
     def get_neuromuscular_code(self, insurance_bill: str) -> str:
         """Get neuromuscular CPT code based on insurance."""
         if insurance_bill in ["AUTO", "WORK"]:
-            return "97112"
+            return "97124"
         elif insurance_bill == "SELF":
             return "97124"
         else:
