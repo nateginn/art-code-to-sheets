@@ -122,31 +122,36 @@ class PlanExtractor:
         """Extract all patient data from agenda page and process encounters"""
         try:
             # Get date of service
-            date_element = await self.page.wait_for_selector(".readable-date-container .header4semibold")
+            date_element = await self.page.wait_for_selector("div.item--TBn h3.h3.box-margin-Bn")
             date_of_service = await date_element.text_content()
 
-            # Get patient rows
-            patient_rows = await self.page.query_selector_all(".slc-row.appointment-container")
+            # Get patient rows (updated selector)
+            patient_rows = await self.page.query_selector_all("tr.data-table__row")
             patients = []
             
             # Initialize plan processor
             processor = PlanProcessor()
 
             for i, row in enumerate(patient_rows):
-                # Extract basic patient info
-                name = await row.query_selector(".patient-column .lead a")
-                birthday = await row.query_selector(".birthday .text-color-default")
-                provider = await row.query_selector(".provider-column .text-color-default")
-                status = await row.query_selector(".status-column .display-name")
-                encounter_link = await row.query_selector(".view-encounter a")
+                # Extract basic patient info (updated selectors)
+                name_el = await row.query_selector("a[data-element='cell-name']")
+                birthday_el = await row.query_selector("span[data-element='cell-dob']")
+                status_el = await row.query_selector("p[data-element='status']")
+                encounter_link_el = await row.query_selector("a[data-element='link-view-encounter']")
+
+                # Provider extraction by cell index
+                tds = await row.query_selector_all("td")
+                provider = ""
+                if len(tds) > 4:
+                    provider = await tds[4].text_content()
 
                 # Build patient data dictionary
                 patient_data = {
-                    "name": await name.text_content() if name else "",
-                    "birthday": await birthday.text_content() if birthday else "",
-                    "provider": await provider.text_content() if provider else "",
-                    "encounter_url": await encounter_link.get_attribute("href") if encounter_link else "",
-                    "status": await status.text_content() if status else ""
+                    "name": await name_el.text_content() if name_el else "",
+                    "birthday": await birthday_el.text_content() if birthday_el else "",
+                    "provider": provider.strip() if provider else "",
+                    "encounter_url": await encounter_link_el.get_attribute("href") if encounter_link_el else "",
+                    "status": await status_el.text_content() if status_el else ""
                 }
 
                 # Clean whitespace
@@ -169,7 +174,6 @@ class PlanExtractor:
                             "plan": plan_result["procedures"],
                             "codes": plan_result["codes"]
                         })
-
                 patients.append(patient_data)
 
             return {
