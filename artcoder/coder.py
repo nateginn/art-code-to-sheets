@@ -30,7 +30,7 @@ class CPTCoder:
             },
             # Region-based pattern
             "acupuncture": {
-                "main": r"Acupuncture",
+                "main": r"\bAcupuncture\b",
                 "regions": r"(?:cervical|thoracic|lumbar|sacral|neck|back)",
             },
             # Exam codes - exact matches only
@@ -44,6 +44,15 @@ class CPTCoder:
                 "97163": r"97163",
                 "97164": r"97164",
             },
+            # Generic line pattern: <Procedure> (x|:) <minutes> [CPT]
+            # Examples:
+            #   "Neuromuscular Re-Education x 25 minutes 97112"
+            #   "Therapeutic Activities x 0 minutes"
+            #   "Self care and Home Management: 0 minutes 97535"
+            #   "Functional Dry Needling x 8 min 20560"
+            "generic_time_with_optional_cpt": r"^\s*(?P<proc>Therapeutic Activities|Therapeautic Activities|Neuromuscular\s*Re[-\s]?Education|Therapeutic Exercise|Manual Therapy|Self Care(?: and)? Home Management|(?:Trigger Point|Functional|)\s*Dry\s*Needling)\s*(?:\([^\)]*\)\s*)*(?:x|:)\s*(?P<min>\d+)\s*(?:min|minutes)\b(?:\s*(?P<cpt>\d{5}))?",
+            # Alternate order: <Procedure> <CPT> (x|:) <minutes>
+            "generic_cpt_before_minutes": r"^\s*(?P<proc>Therapeutic Activities|Therapeautic Activities|Neuromuscular\s*Re[-\s]?Education|Therapeutic Exercise|Manual Therapy|Self Care(?: and)? Home Management|(?:Trigger Point|Functional|)\s*Dry\s*Needling)\s*(?:\([^\)]*\)\s*)*(?P<cpt>\d{5})\s*(?:x|:)\s*(?P<min>\d+)\s*(?:min|minutes)\b",
         }
 
         self.output_dir = os.path.join(
@@ -262,9 +271,57 @@ class CPTCoder:
                     {"code": exam_code, "units": 1, "description": "Examination"}
                 )
 
+        # Helper to merge units for duplicate codes
+        def add_or_merge(target_list: List[Dict], code: str, units: int, description: str):
+            if units <= 0:
+                return
+            for item in target_list:
+                if item.get("code") == code:
+                    item["units"] += units
+                    return
+            target_list.append({"code": code, "units": units, "description": description})
+
+        # First pass: handle explicit therapist syntax lines with optional CPT at end
+        explicit_map = {
+            "THERAPEUTIC ACTIVITIES": "97530",
+            "NEUROMUSCULAR RE-EDUCATION": "97112",
+            "THERAPEUTIC EXERCISE": "97110",
+            "MANUAL THERAPY": "97140",
+            "SELF CARE HOME MANAGEMENT": "97535",
+            "DRY NEEDLING": "20561",
+            "TRIGGER POINT DRY NEEDLING": "20561",
+            "FUNCTIONAL DRY NEEDLING": "20561",
+        }
+
+        explicit_hit = set()
+        for pattern_key in ("generic_time_with_optional_cpt", "generic_cpt_before_minutes"):
+            for m in re.finditer(self.cpt_patterns[pattern_key], plan_text, re.IGNORECASE | re.MULTILINE):
+                proc = m.group("proc").upper().replace("  ", " ").strip()
+                minutes = int(m.group("min"))
+                explicit_cpt = m.group("cpt")
+                units = self.calculate_time_units(minutes)
+                if units == 0:
+                    continue
+                code = explicit_cpt if explicit_cpt else explicit_map.get(proc)
+                if code:
+                    add_or_merge(codes, code, units, f"{proc.title()} ({minutes} minutes)")
+                    # mark section to avoid legacy double-counting
+                    if "THERAPEUTIC ACTIVITIES" in proc:
+                        explicit_hit.add("therapeutic_activities")
+                    elif "NEUROMUSCULAR" in proc:
+                        explicit_hit.add("neuromuscular")
+                    elif "THERAPEUTIC EXERCISE" in proc:
+                        explicit_hit.add("therapeutic_exercise")
+                    elif "MANUAL THERAPY" in proc:
+                        explicit_hit.add("manual_therapy")
+                    elif "HOME MANAGEMENT" in proc:
+                        explicit_hit.add("self_care")
+                    elif "NEEDLING" in proc:
+                        explicit_hit.add("dry_needling")
+
         # Handle deep tissue/neuromuscular
         match = re.search(self.cpt_patterns["neuromuscular"], plan_text, re.IGNORECASE)
-        if match:
+        if match and "neuromuscular" not in explicit_hit:
             if match.group(1):  # Procedure first
                 minutes = int(match.group(2))
             elif match.group(3):  # Time first
@@ -275,17 +332,25 @@ class CPTCoder:
             if minutes > 0:
                 units = self.calculate_time_units(minutes)
                 if units > 0:
-                    codes.append(
-                        {
-                            "code": self.get_neuromuscular_code(insurance_bill),
-                            "units": units,
-                            "description": f"Deep tissue Therapy ({minutes} minutes)",
-                        }
-                    )
+                    # If the matched keyword is neuromuscular, use 97112; if deep tissue, use legacy mapping
+                    # Safely pick the keyword group depending on which branch matched
+                    keyword_text = (match.group(1) or (match.group(4) if len(match.groups()) >= 4 else "") or "")
+                    keyword = keyword_text.lower()
+                    if "neuromuscular" in keyword:
+                        code = "97112"
+                        desc = "Neuromuscular Re-education"
+                    elif "deep tissue" in keyword:
+                        code = self.get_neuromuscular_code(insurance_bill)
+                        desc = "Deep tissue Therapy"
+                    else:
+                        # Fallback to legacy mapping if keyword is unavailable
+                        code = self.get_neuromuscular_code(insurance_bill)
+                        desc = "Deep tissue/Neuromuscular"
+                    add_or_merge(codes, code, units, f"{desc} ({minutes} minutes)")
 
         # Handle therapeutic activities
         match = re.search(self.cpt_patterns["therapeutic_activities"], plan_text, re.IGNORECASE)
-        if match:
+        if match and "therapeutic_activities" not in explicit_hit:
             if match.group(1):  # Procedure first in standard format
                 minutes = int(match.group(2))
             elif match.group(3):  # Time first in standard format
@@ -298,12 +363,11 @@ class CPTCoder:
             if minutes > 0:
                 units = self.calculate_time_units(minutes)
                 if units > 0:
-                    codes.append(
-                        {
-                            "code": self.get_therapeutic_activities_code(insurance_bill),
-                            "units": units,
-                            "description": f"Therapeutic Activities ({minutes} minutes)",
-                        }
+                    add_or_merge(
+                        codes,
+                        self.get_therapeutic_activities_code(insurance_bill),
+                        units,
+                        f"Therapeutic Activities ({minutes} minutes)",
                     )
 
         # Handle manipulation
@@ -312,31 +376,24 @@ class CPTCoder:
             regions = self.count_regions(match.group(1))
             manip_code = self.get_manipulation_code(insurance_bill, regions)
             if manip_code:
-                codes.append(
-                    {
-                        "code": manip_code,
-                        "units": 1,
-                        "description": f"Manipulation ({regions} regions)",
-                    }
+                add_or_merge(
+                    codes,
+                    manip_code,
+                    1,
+                    f"Manipulation ({regions} regions)",
                 )
 
             # Add extraspinal code if needed
             if regions["extraspinal"] and insurance_bill != "MEDICAID":
                 # Check if any spinal manipulation code is in the OMT range (9892x)
                 if not (manip_code and manip_code.startswith("9892")):
-                    codes.append(
-                        {
-                            "code": "98943",
-                            "units": 1,
-                            "description": "Extraspinal Manipulation",
-                        }
-                    )
+                    add_or_merge(codes, "98943", 1, "Extraspinal Manipulation")
 
         # Handle therapeutic exercise
         match = re.search(
             self.cpt_patterns["therapeutic_exercise"], plan_text, re.IGNORECASE
         )
-        if match:
+        if match and "therapeutic_exercise" not in explicit_hit:
             if match.group(1):  # Procedure first
                 minutes = int(match.group(2))
             elif match.group(3):  # Time first
@@ -347,17 +404,11 @@ class CPTCoder:
             if minutes > 0:
                 units = self.calculate_time_units(minutes)
                 if units > 0:
-                    codes.append(
-                        {
-                            "code": "97110",
-                            "units": units,
-                            "description": f"Therapeutic Exercise ({minutes} minutes)",
-                        }
-                    )
+                    add_or_merge(codes, "97110", units, f"Therapeutic Exercise ({minutes} minutes)")
 
         # Handle manual therapy
         match = re.search(self.cpt_patterns["manual_therapy"], plan_text, re.IGNORECASE)
-        if match:
+        if match and "manual_therapy" not in explicit_hit:
             if match.group(2):  # Keyword first, standard format
                 minutes = int(match.group(2))
             elif match.group(3):  # Time first, standard format
@@ -370,25 +421,14 @@ class CPTCoder:
             if minutes > 0:
                 units = self.calculate_time_units(minutes)
                 if units > 0:
-                    codes.append(
-                        {
-                            "code": "97140",
-                            "units": units,
-                            "description": f"Manual Therapy ({minutes} minutes)",
-                        }
-                    )
+                    add_or_merge(codes, "97140", units, f"Manual Therapy ({minutes} minutes)")
 
         # Handle dry needling
-        if re.search(self.cpt_patterns["dry_needling"], plan_text, re.IGNORECASE):
-            # Check if 20561 is already present from exam codes or other means (optional safety)
-            if not any(item.get('code') == '20561' for item in codes):
-                codes.append(
-                    {
-                        "code": "20561", 
-                        "units": 1, 
-                        "description": "Dry Needling"
-                    }
-                )
+        if ("dry_needling" not in explicit_hit) and re.search(self.cpt_patterns["dry_needling"], plan_text, re.IGNORECASE):
+            # Simple negation guard: if the note indicates "not today", skip adding dry needling
+            if not re.search(r"not\s+today", plan_text, re.IGNORECASE):
+                if not any(item.get('code') == '20561' for item in codes):
+                    add_or_merge(codes, "20561", 1, "Dry Needling")
 
         # Process acupuncture
         acupuncture_codes = self.handle_acupuncture(plan_text)

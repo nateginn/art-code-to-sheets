@@ -1,0 +1,473 @@
+{
+    "date_of_service": "Thu, Jan 29, 2026",
+    "patients": [
+        {
+            "name": "MYLES MCCLARITY",
+            "birthday": "02/03/2005",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/47c02226-bd01-4ce2-a876-70dd3a8387cd/encounter/28f9628a-70e1-4d43-b2d0-cd730b370093",
+            "status": "Not confirmed",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [
+                    "The patient's treatment plan will consist of a combination of chiropractic manipulative therapy, interferential current, myofascial release, cold laser/LLLT therapy, exercise, ultrasound, bed rest, and heat therapy. Treatment during this phase of soft tissue injury will include measures to reduce pain, improve joint biomechanics, decrease muscle spasticity, regain range of motion, and regain the ability to resume daily activities. Re-examinations and referrals will be determined via non-response to care, worsening of conditions, and is at the doctor\u2019s discretion."
+                ],
+                "electrical_stim": [
+                    "The patient's treatment plan will consist of a combination of chiropractic manipulative therapy, interferential current, myofascial release, cold laser/LLLT therapy, exercise, ultrasound, bed rest, and heat therapy. Treatment during this phase of soft tissue injury will include measures to reduce pain, improve joint biomechanics, decrease muscle spasticity, regain range of motion, and regain the ability to resume daily activities. Re-examinations and referrals will be determined via non-response to care, worsening of conditions, and is at the doctor\u2019s discretion."
+                ],
+                "active_release": [],
+                "manual_therapy": [
+                    "The patient's treatment plan will consist of a combination of chiropractic manipulative therapy, interferential current, myofascial release, cold laser/LLLT therapy, exercise, ultrasound, bed rest, and heat therapy. Treatment during this phase of soft tissue injury will include measures to reduce pain, improve joint biomechanics, decrease muscle spasticity, regain range of motion, and regain the ability to resume daily activities. Re-examinations and referrals will be determined via non-response to care, worsening of conditions, and is at the doctor\u2019s discretion."
+                ]
+            },
+            "codes": [
+                {
+                    "code": "99203",
+                    "units": 1,
+                    "description": "Examination"
+                },
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                }
+            ]
+        },
+        {
+            "name": "BRYANA CARTER",
+            "birthday": "06/19/1996",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/30d60735-64bd-468a-ac1d-649335c1b83b/encounter/506b4860-d560-4593-b1e1-80fc8ff8fec8",
+            "status": "Not confirmed",
+            "insurance": "SHIP",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S and hips"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98927",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 5, 'spinal': 4, 'extraspinal': True} regions)"
+                }
+            ]
+        },
+        {
+            "name": "JAYA KOLLI",
+            "birthday": "12/31/1947",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/3cbe1c6f-569f-42e7-af13-59abbe6ed008/encounter/07b3d010-255e-4f3e-8239-ce8d40a9d8a6",
+            "status": "Not confirmed",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S - activator"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98926",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 4, 'spinal': 4, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "RAHUL DESHMUKH",
+            "birthday": "10/04/1978",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/5cca70ed-f6ae-43c4-9cde-ee74b129ae5d/encounter/e0d82452-a22a-4ed9-a26b-0556ed8c412a",
+            "status": "Not confirmed",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "Deep tissue and/or Neuromuscular re-education was provided for 25 minutes to diminish myospasms, improve circulation, and re-educate injured muscle and fascia for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98926",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 4, 'spinal': 4, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "STEPHANIE JONES",
+            "birthday": "02/11/1989",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/db115681-6fb4-4ce7-8e7d-dc24ae70ad4c/encounter/78ca0afb-1ac8-4692-8fdd-47d426fe748d",
+            "status": "Not confirmed",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S and hips"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "99213",
+                    "units": 1,
+                    "description": "Examination"
+                },
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98927",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 5, 'spinal': 4, 'extraspinal': True} regions)"
+                }
+            ]
+        },
+        {
+            "name": "KENADEE HADLOCK",
+            "birthday": "09/27/2005",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/fc6ebdb2-32b4-4004-a889-d58d42f527d4/encounter/785b4497-2782-4d4a-aefe-9f2ed80274cf",
+            "status": "Not confirmed",
+            "insurance": "SHIP",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S, and hips"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98927",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 5, 'spinal': 4, 'extraspinal': True} regions)"
+                }
+            ]
+        },
+        {
+            "name": "JOSEPH ARMSTRONG",
+            "birthday": "08/23/2005",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/9d8cf2f6-e61e-4c4e-89b7-3a22634da64b/encounter/07bd3bb7-a0cf-402a-b3b1-b00ad2ca3a57",
+            "status": "Not confirmed",
+            "insurance": "ART BEAR CARE",
+            "plan": {
+                "deep_tissue": [
+                    "To improve circulation, diminish myospasms, and re-educate injured muscle and fascia 25 minutes of deep tissue and/or neuromuscular re-education was provided for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "99213",
+                    "units": 1,
+                    "description": "Examination"
+                },
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98925",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "VICTORIA VIGIL (TORI)",
+            "birthday": "01/17/1997",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/e2e2b752-4117-4807-9cb5-a2829538221c/encounter/f6db09ba-c8b1-4bcf-96f7-755e3c04f75d",
+            "status": "Not confirmed",
+            "insurance": "ART BEAR CARE",
+            "plan": {
+                "deep_tissue": [
+                    "To improve circulation, diminish myospasms, and re-educate injured muscle and fascia 25 minutes of deep tissue and/or neuromuscular re-education was provided for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T,"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "99213",
+                    "units": 1,
+                    "description": "Examination"
+                },
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98925",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 2, 'spinal': 2, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "ALEXANDREA MCKINDLE (ALEX)",
+            "birthday": "09/30/2006",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/46e1a8ad-a8e6-4c27-9e52-c8c6f1ee0a69/encounter/30cc5cfe-a2ac-45b8-98c0-01338911973c",
+            "status": "Not confirmed",
+            "insurance": "UMR",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98926",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 4, 'spinal': 4, 'extraspinal': False} regions)"
+                }
+            ]
+        },
+        {
+            "name": "JAMES  DAN AUSTIN III (Jake)",
+            "birthday": "04/10/2003",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/79323046-5139-48e0-8db9-72b081826f78/encounter/fca17757-bea9-4ba9-9ba1-2b05b5f5a428",
+            "status": "Confirmed",
+            "insurance": "SHIP",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S, wrists"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98927",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 5, 'spinal': 4, 'extraspinal': True} regions)"
+                }
+            ]
+        },
+        {
+            "name": "FAITH GETTY",
+            "birthday": "04/06/1976",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/60dbfb31-57a0-41e4-8358-f0f7aec3331d/encounter/fb5e0cc3-fa1b-4091-8a50-399092d457b8",
+            "status": "Not confirmed",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S, hips."
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98927",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 5, 'spinal': 4, 'extraspinal': True} regions)"
+                }
+            ]
+        },
+        {
+            "name": "MADELYNE CROUCH",
+            "birthday": "05/28/2005",
+            "provider": "Nathan Ginn",
+            "encounter_url": "#/PF/charts/patients/eab8ee21-2713-4e8c-ab8e-b0cf90a8b315/encounter/25c639b3-771b-4774-a8f9-f4f194cddf81",
+            "status": "Not confirmed",
+            "insurance": "BCBS",
+            "plan": {
+                "deep_tissue": [
+                    "A session of 25 minutes of deep tissue and/or neuromuscular re-education was provided to diminish re-educate injured muscle and fascia, myospasms, and improve circulation for improved healing outcomes."
+                ],
+                "manipulation": [
+                    "Manipulation to the affected spinal segments: C, T, L/S"
+                ],
+                "extraspinal": [],
+                "chiropractic_adjustment": [],
+                "therapeutic_exercise": [],
+                "therapeutic_activities": [],
+                "acupuncture": [],
+                "ultrasound": [],
+                "electrical_stim": [],
+                "active_release": [],
+                "manual_therapy": []
+            },
+            "codes": [
+                {
+                    "code": "99213",
+                    "units": 1,
+                    "description": "Examination"
+                },
+                {
+                    "code": "97530",
+                    "units": 2,
+                    "description": "Deep tissue Therapy (25 minutes)"
+                },
+                {
+                    "code": "98926",
+                    "units": 1,
+                    "description": "Manipulation ({'total': 4, 'spinal': 4, 'extraspinal': False} regions)"
+                }
+            ]
+        }
+    ]
+}
